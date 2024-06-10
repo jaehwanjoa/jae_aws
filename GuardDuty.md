@@ -2,8 +2,8 @@
 AWS 환경을 지속적으로 모니터링하는 위협 탐지 서비스로써 잠재적인 보안 위험에 대비할 수 있습니다. 
 
 2. 필요 데이터원본:
-AWS CloudTrail 이벤트 로그: AWS CloudTrail은 AWS API 호출 기록을 제공합니다. AWS Management Console, AWS SDK, 커맨드를 사용하여 수행된 API 호출 도구 및 특정 AWS 서비스등.
-AWS CloudTrail 관리 이벤트: 컨트롤 플레인 이벤트라고도 합니다. AWS 계정의 리소스에 대해 수행되는 관리작업을 뜻합니다. 보안 구성 작업(IAttachRolePolicy), 데이터 라우팅을 위한 규칙 구성, 로깅 설정 등
+- AWS CloudTrail 이벤트 로그: AWS CloudTrail은 AWS API 호출 기록을 제공합니다. AWS Management Console, AWS SDK, 커맨드를 사용하여 수행된 API 호출 도구 및 특정 AWS 서비스등.
+- AWS CloudTrail 관리 이벤트: 컨트롤 플레인 이벤트라고도 합니다. AWS 계정의 리소스에 대해 수행되는 관리작업을 뜻합니다. 보안 구성 작업(IAttachRolePolicy), 데이터 라우팅을 위한 규칙 구성, 로깅 설정 등
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/a2f2e7ed-7c1a-486a-bc4d-0b6865f5f813)
 
 !!대부분의 CloudTrail 이벤트는 리전에 생성되지만, AWS Identity and Access Management(IAM), AWS Security Token Service(AWS STS), AWS S3, Amazon Roue 53과 같은 글로벌 서비스는
