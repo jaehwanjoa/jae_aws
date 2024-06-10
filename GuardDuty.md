@@ -3,9 +3,6 @@ AWS 환경을 지속적으로 모니터링하는 위협 탐지 서비스로써 �
 
 2. 필요 데이터원본:
 AWS CloudTrail 이벤트 로그: AWS CloudTrail은 AWS API 호출 기록을 제공합니다. AWS Management Console, AWS SDK, 커맨드를 사용하여 수행된 API 호출 도구 및 특정 AWS 서비스등.
-GuardDuty는 독립적인 CloudTrail을 통해 관리 이벤트 사용 및 중복된 이벤트 스트림을 생성하고 이벤트 로그를 분석함. GuardDuty가 CloudTrail에 기록된 이벤트에 액세스할 때 추가 비용 없음
-GuardDuty는 CloudTrail 이벤트를 관리하거나 기존 CloudTrail 구성에 영향을 주지 않습니다.
-
 AWS CloudTrail 관리 이벤트: 컨트롤 플레인 이벤트라고도 합니다. AWS 계정의 리소스에 대해 수행되는 관리작업을 뜻합니다. 보안 구성 작업(IAttachRolePolicy), 데이터 라우팅을 위한 규칙 구성, 로깅 설정 등
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/a2f2e7ed-7c1a-486a-bc4d-0b6865f5f813)
 
