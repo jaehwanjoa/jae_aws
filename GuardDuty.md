@@ -1,5 +1,6 @@
 1. 설명:
 AWS 환경을 지속적으로 모니터링하는 위협 탐지 서비스로써 잠재적인 보안 위험에 대비할 수 있습니다. 
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/fbe8f468-d429-4fec-a222-2f2a9bfe4d8d)
 
 2. 필요 데이터원본:
 - AWS CloudTrail 이벤트 로그: AWS CloudTrail은 AWS API 호출 기록을 제공합니다. AWS Management Console, AWS SDK, 커맨드를 사용하여 수행된 API 호출 도구 및 특정 AWS 서비스등.
@@ -17,6 +18,21 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
 해당 이벤트를 복제하여 GuardDuty를 활성화한 리전에서 처리합니다. 
 
 
+3. GuardDuty 필요 역할
+- GuardDuty 서비스 역할
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/d5b646f2-4650-4955-a6a8-00a9107980b8)
+- GuardDuty 멀웨어 보호 역할
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/7f088a42-ad8c-405c-96e3-5c7e89ab49a1)
+
+
+4. GuardDuty 보호 플랜:
+- 기본 위협 탐지(default): AWS CloudTrail 관리 이벤트 분석, EC2 VPC 흐름 로그 분석, EC2 DNS 쿼리 로그 분석 제공
+- GuardDuty S3 보호: AWS CloudTrail S3 데이터 이벤트 분석 사용,
+- GuardDuty EKS 보호: Amazon EKS 감사 로그 분석 사용,
+- GuardDuty 멀웨어 방지: EBS 볼륨 데이터 스캔 분석 제공,
+- GuardDuty RDS 보호: 
+- GuardDuty Lambda 보호: Lambda VPC Flow 로그 분석 사용,
+- 런타임 보호: EKS 런타임 모니터링 분석, ECS 런타임 모니터링 분석, EC2 런타임 모니터링 분
 
 3. 부가 기능:
 - GuardDuty Lambda 보호: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lambda 함수가 호출될 때 잠재적인 보안 위협을 식별하는데 도움이 됩니다. 활성화를 시작하면 lambda 네트워크 활동 모니터링을 시작하며, 계정에 대한 모든 Lambda 함수의 VPC Flow Log, VPC 네트워킹을 사용하지 않으며, Lambda 함수가 호출됩니다.GuardDuty가 의심스러운 네트워크 트래픽을 식별하는 경의 Lambda 함수에서 잠재적으로
