@@ -42,6 +42,7 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
   ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/db446f6d-6643-4f61-922d-74a7d33adf4e)
  2)on-demand-malware-scan: 연결된 EBS 볼륨에서 멀웨어의 존재를 탐지하며 구성이 필요하지 않은 경우 주문형 멀웨어 검사를 시작할 수 있음. gdu-initiated-malware-scan과 차이점은 24시간 경과까지 기다릴 필요가 없으며, 수동으로 EC2 인스턴스(ARN)에 대한 스캔을 수행합니다. 사용자가 필요할때마다 수행됩니다.
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/31263d67-c122-4e93-9cc8-c5375629ebf2)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/bd0c7d5f-7ecc-43dc-9592-267e300fcb9a)
 
 - GuardDuty S3 Protection: AWS S3 버킷에 대해 자동으로 멀웨어 스캔을 시작합니다. 제공되는 주요 작업은 다음과 같음
   1) 스캔 항목 선택: 모든 접두사 또는 특정 접두사에 업로드되는 파일을 스캔합니다(최대 5개)
