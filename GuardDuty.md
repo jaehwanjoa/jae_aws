@@ -35,7 +35,12 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
 - 런타임 보호: EKS 런타임 모니터링 분석, ECS 런타임 모니터링 분석, EC2 런타임 모니터링 분
 
 4. 부가 기능:
-- GuardDuty Lambda 보호: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lamda 함수에서 VPC 네트워킹을 사용하도록 구성된 경우 탄력적 네트워크 인터페이스(ENI)에 대한 VPC Flow 로그를 활성화할 필요가 없으며, 악의적인 코드 조각이 Lamda 함수에 포함되어있는 경우 GuardDuty가 결과를 생성합니다.
+- GuardDuty Lambda Protection: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lamda 함수에서 VPC 네트워킹을 사용하도록 구성된 경우 탄력적 네트워크 인터페이스(ENI)에 대한 VPC Flow 로그를 활성화할 필요가 없으며, 악의적인 코드 조각이 Lamda 함수에 포함되어있는 경우 GuardDuty가 결과를 생성합니다.
 - GuardDuty EKS Protection: 일반적으로 GuardDuty는 EKS 컨트롤 플레인 로깅을 관리하거나 로그를 생성하지 않습니다. 해당 기능을 사용하려면 EKS 컨트롤 플레인 로깅 활성화가 필수적이며, 활성화 시 즉시 GuardDuty가 모니터링을 시작합니다. 예를 들어 클러스트를 만들고 잠재적으로 악의적이고 의심스러운 활동을 분석합니다. [EKS 문서자료 참조할 것]
-
+- Malware-Protection for EC2 in AWS GuardDuty: EC2 인스턴스 및 컨테이너 워크로드에 연결된 AWS EBS(Azure의 Managed 디스크와 같은 블록 수준 스토리지를 의미) 볼륨을 스캔하여 멀웨어 유무를 탐지합니다. 해당 기능은 EC2 인스턴스를 포함/제외 여부를 결정할 수 있는 스캔 옵션과 스냅샷 보존 기간을 설정하는 옵션을 제공합니다. 스냅샷의 보존은 멀웨어가 발견된 경우에만 보존됩니다.
+ 1)gdu-initiated-malware-scan: GuardDuty는 자동으로 EC2 인스턴스에 연결된 EBS 볼륨에 대한 에이전트 없는 스캔 또는 컨테이너 워크로드를 사용하여 멀웨어를 감지함. 멀웨어 검사는 24시간마다 한번씩(매일 한번) 호출함
+  ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/db446f6d-6643-4f61-922d-74a7d33adf4e)
+ 2)on-demand-malware-scan: 연결된 EBS 볼륨에서 멀웨어의 존재를 탐지하며 구성이 필요하지 않은 경우 주문형 멀웨어 검사를 시작할 수 있음. gdu-initiated-malware-scan과 차이점은 24시간 경과까지 기다릴 필요가 없으며, 수동으로 EC2 인스턴스(ARN)에 대한 스캔을 수행합니다. 사용자가 필요할때마다 수행됩니다.
+- GuardDuty S3 Protection: AWS S3 버킷에 대해 자동으로 멀웨어 스캔을 시작합니다. 
+  
 GuardDuty 런타임 모니터링:
