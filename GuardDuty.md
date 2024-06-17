@@ -41,6 +41,12 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
  1)gdu-initiated-malware-scan: GuardDuty는 자동으로 EC2 인스턴스에 연결된 EBS 볼륨에 대한 에이전트 없는 스캔 또는 컨테이너 워크로드를 사용하여 멀웨어를 감지함. 멀웨어 검사는 24시간마다 한번씩(매일 한번) 호출함
   ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/db446f6d-6643-4f61-922d-74a7d33adf4e)
  2)on-demand-malware-scan: 연결된 EBS 볼륨에서 멀웨어의 존재를 탐지하며 구성이 필요하지 않은 경우 주문형 멀웨어 검사를 시작할 수 있음. gdu-initiated-malware-scan과 차이점은 24시간 경과까지 기다릴 필요가 없으며, 수동으로 EC2 인스턴스(ARN)에 대한 스캔을 수행합니다. 사용자가 필요할때마다 수행됩니다.
-- GuardDuty S3 Protection: AWS S3 버킷에 대해 자동으로 멀웨어 스캔을 시작합니다. 
+- GuardDuty S3 Protection: AWS S3 버킷에 대해 자동으로 멀웨어 스캔을 시작합니다. 제공되는 주요 작업은 다음과 같음
+  1) 스캔 항목 선택: 모든 접두사 또는 특정 접두사에 업로드되는 파일을 스캔합니다(최대 5개)
+  2) 업로드된 객체에 대한 자동 검사: 멀웨어 스캔 활성화 후 버컷에 대해 새로 업로드되는 객체에서 자동 스캔을 시작함
+  3) Enable through console or using API: S3에 대한 멀웨어 방지를 활성화하는 기본 방법
+  4) 스캔한 S3 객체 태깅 지원(selected): 각 멀웨어 스캔 후 GuardDuty에서 태그를 추가합니다. 업로드된 S3 객체의 스캔 상태를 나타내며 태그를 사용하여, 태그 기반 액세스제어(TBAC)를 설정할 수 있음. S3의 경우 예를 들어 악성으로 판명되면 태그 값은 'THREATS_FOUND'로 명시됨
+  5) AWS EventBridge 알림: S3 멀에어 검사 상태에 대한 알림을 받음
+  6) CloudWatch 지표: GuardDuty 콘솔에 포함된 지표를 봄. 지표에는 S3 객체에 대한 세부 정보가 포함됨 
   
 GuardDuty 런타임 모니터링:
