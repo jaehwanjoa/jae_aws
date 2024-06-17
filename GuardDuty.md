@@ -35,8 +35,7 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
 - 런타임 보호: EKS 런타임 모니터링 분석, ECS 런타임 모니터링 분석, EC2 런타임 모니터링 분
 
 4. 부가 기능:
-- GuardDuty Lambda 보호: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lambda 함수가 호출될 때 잠재적인 보안 위협을 식별하는데 도움이 됩니다. 활성화를 시작하면 lambda 네트워크 활동 모니터링을 시작하며, 계정에 대한 모든 Lambda 함수의 VPC Flow Log, VPC 네트워킹을 사용하지 않으며, Lambda 함수가 호출됩니다.GuardDuty가 의심스러운 네트워크 트래픽을 식별하는 경의 Lambda 함수에서 잠재적으로
-악의적인 코드 조각이 있는 경우 GuardDuty가 결과를 생성합니다.
+- GuardDuty Lambda 보호: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lamda 함수에서 VPC 네트워킹을 사용하도록 구성된 경우 탄력적 네트워크 인터페이스(ENI)에 대한 VPC Flow 로그를 활성화할 필요가 없으며, 악의적인 코드 조각이 Lamda 함수에 포함되어있는 경우 GuardDuty가 결과를 생성합니다.
 - GuardDuty EKS Protection: 일반적으로 GuardDuty는 EKS 컨트롤 플레인 로깅을 관리하거나 로그를 생성하지 않습니다. 해당 기능을 사용하려면 EKS 컨트롤 플레인 로깅 활성화가 필수적이며, 활성화 시 즉시 GuardDuty가 모니터링을 시작합니다. 예를 들어 클러스트를 만들고 잠재적으로 악의적이고 의심스러운 활동을 분석합니다. [EKS 문서자료 참조할 것]
 
 GuardDuty 런타임 모니터링:
