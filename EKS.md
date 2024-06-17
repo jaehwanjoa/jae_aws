@@ -6,5 +6,6 @@ AWS EKS는 설치, 운영 및 AWS에서 자체 kubernetes 제어 플레인을 �
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/c5b36726-fb6c-4b46-91ab-519741c9ca51)
 EKS 클러스터 선택 및 CloudWatch Observablility EKS 에드온 이동 선택 후 에이전트 설치 구성(IAM 권한 필요함)
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/38b99aff-2752-42cb-9836-70a0524e95aa)
+Container Insights에서 로깅 여부 확인
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/d60206cc-27a0-4ffe-afd1-d04d8fb9b316)
 
-![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/cb085d0f-8c01-4905-80ec-172358463fff)
