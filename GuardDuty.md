@@ -24,19 +24,13 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
 - GuardDuty 멀웨어 보호 역할
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/7f088a42-ad8c-405c-96e3-5c7e89ab49a1)
 
-
-4. GuardDuty 보호 플랜:
-- 기본 위협 탐지(default): AWS CloudTrail 관리 이벤트 분석, EC2 VPC 흐름 로그 분석, EC2 DNS 쿼리 로그 분석 제공
-- GuardDuty S3 보호: AWS CloudTrail S3 데이터 이벤트 분석 사용,
-- GuardDuty EKS 보호: Amazon EKS 감사 로그 분석 사용,
-- GuardDuty 멀웨어 방지: EBS 볼륨 데이터 스캔 분석 제공,
-- GuardDuty RDS 보호: 
-- GuardDuty Lambda 보호: Lambda VPC Flow 로그 분석 사용,
-- 런타임 보호: EKS 런타임 모니터링 분석, ECS 런타임 모니터링 분석, EC2 런타임 모니터링 분
-
 4. 부가 기능:
+- 기본 위협 탐지(default): AWS CloudTrail 관리 이벤트 분석, EC2 VPC 흐름 로그 분석, EC2 DNS 쿼리 로그 분석 제공
+  
 - GuardDuty Lambda Protection: 잠재적인 보안 위협으로부터 Lambda 함수를 보호합니다. AWS Lamda 함수에서 VPC 네트워킹을 사용하도록 구성된 경우 탄력적 네트워크 인터페이스(ENI)에 대한 VPC Flow 로그를 활성화할 필요가 없으며, 악의적인 코드 조각이 Lamda 함수에 포함되어있는 경우 GuardDuty가 결과를 생성합니다.
+
 - GuardDuty EKS Protection: 일반적으로 GuardDuty는 EKS 컨트롤 플레인 로깅을 관리하거나 로그를 생성하지 않습니다. 해당 기능을 사용하려면 EKS 컨트롤 플레인 로깅 활성화가 필수적이며, 활성화 시 즉시 GuardDuty가 모니터링을 시작합니다. 예를 들어 클러스트를 만들고 잠재적으로 악의적이고 의심스러운 활동을 분석합니다. [EKS 문서자료 참조할 것]
+
 - Malware-Protection for EC2 in AWS GuardDuty: EC2 인스턴스 및 컨테이너 워크로드에 연결된 AWS EBS(Azure의 Managed 디스크와 같은 블록 수준 스토리지를 의미) 볼륨을 스캔하여 멀웨어 유무를 탐지합니다. 해당 기능은 EC2 인스턴스를 포함/제외 여부를 결정할 수 있는 스캔 옵션과 스냅샷 보존 기간을 설정하는 옵션을 제공합니다. 스냅샷의 보존은 멀웨어가 발견된 경우에만 보존됩니다.
  1)gdu-initiated-malware-scan: GuardDuty는 자동으로 EC2 인스턴스에 연결된 EBS 볼륨에 대한 에이전트 없는 스캔 또는 컨테이너 워크로드를 사용하여 멀웨어를 감지함. 멀웨어 검사는 24시간마다 한번씩(매일 한번) 호출함
   ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/db446f6d-6643-4f61-922d-74a7d33adf4e)
@@ -51,5 +45,12 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
   4) 스캔한 S3 객체 태깅 지원(selected): 각 멀웨어 스캔 후 GuardDuty에서 태그를 추가합니다. 업로드된 S3 객체의 스캔 상태를 나타내며 태그를 사용하여, 태그 기반 액세스제어(TBAC)를 설정할 수 있음. S3의 경우 예를 들어 악성으로 판명되면 태그 값은 'THREATS_FOUND'로 명시됨
   5) AWS EventBridge 알림: S3 멀에어 검사 상태에 대한 알림을 받음
   6) CloudWatch 지표: GuardDuty 콘솔에 포함된 지표를 봄. 지표에는 S3 객체에 대한 세부 정보가 포함됨 
-  
-GuardDuty 런타임 모니터링:
+
+- GuardDuty RDS Protection: RDS 로그인 활동을 분석하고 프로파일링하여 잠재적 액세스 위협을 확인. AWS Aurora MySQL 및 PostgreSQL 호환, 또는 PostgreSQL용 AWS RDS 해당. 해당 기능은 RDS Protection에 추가 작업을 필요로하지 않으며, 데이터베이스 성능에 영향을 미치지 않도록 설계
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/c9220ce2-c79e-43aa-9f70-f01c9ee00bab)
+처음 활성화 시 기본 baseline을 설정하는 학습 시간이 필요한. 최대 2주 동안 관련 비정상적인 로그인 결과가 있어야함.
+
+- GuardDuty 런타임 모니터링: 보안 에이전트를 사용하여 파일과 같은 런타임 동작에 가시성을 추가합니다. 액세스, 프로세스 실행, 커맨드 입력 및 네트워크 연결 등 잠재적 위협에 대해 모니터링하려는 각 리소스등에서 보안을 관리할 수 있음. 에이전트를 자동/수동 배포할 수 있음
+  1)EC2 인스턴스에서 런타임 모니터링 작동방식: 현재 실행 중인 이벤트 및 Amazon EC2 인스턴스 내 새로운 프로세스 데이터가 보안 에이전트를 통해 수집되며, GuardDuty로 전송합니다. 보안 에이전트는 인스턴스 수준에서 동작하며, 선택적 인스턴스인 경우 보안 에이전트가 선택적으로 설치될 수 있음
+  2)EKS 클러스터에서 런타임 모니터링 작동방식: GuardDuty 보안 에이전트인 EKS 추가 기능 aws-guardduty-agent가 구성되며, EKS 클러스터에서 런타임 이벤트를 수신합니다. 자동/수동 배포할 수 있으며 자동 구성 시, Amazon Virtual Private Cloud(VPC) 엔드포인트가 자동 생성됩니다. AWS Fargate(서버리스 Azure 컨테이너 인스턴스와 유사)에서 실행되는 EKS 클러스터는 현재 지원하지 않음!!!
+  3)Fargate에서 런타임 모니터링 작동방식(AWS ECS/Elastic Container Service): 현재 런타임 모니터링은 GuardDuty를 통해서만 AWS ECS(Fargate)에 대한 보안 에이전트 관리를 지원합니다(시중에 Container Injection or CaaS Sidcar 방식으로 배포되는 경우가 있음)
