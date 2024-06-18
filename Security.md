@@ -11,7 +11,7 @@
 3. AWS Inspector
    1)AWS EC2 인스턴스, 컨테이너 및 Lambda 함수와 같은 워크로드를 자동으로 검색하고 소프트웨어 취약성과 의도하지 않은 네트워크 노출이 있는지 스캔합니다. #Azure MDE 취약성 관리 서비스(서버용, 컨테이너용 포함)와 유사함
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/6dd0d573-2dfa-4f34-a992-ce1cfb0fe265)
-![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/b9931040-0fee-442e-9e1d-78d98a5b0175)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/e721980d-d2e9-4008-a84b-c2f9d3e619e2)
 
    2)취약성 결과
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/bbee0777-f250-48f1-9136-5f8be202a526)
