@@ -22,4 +22,9 @@ IAM Identity Center > 인스턴스 관리 > 사용자
 - AWS Access Portal 로그인(https://yourdomain.awsapps.com/start)
 - IAM Identity Center 사용자로 로그인시 단기 자격 증명으로 액세스할 수 있는 기간(세션)이 부여. 기본 사용자는 8시간(최소 15분, 최대90일 커스텀가능)
 
+IAM 구분
+- IAM Policy: 권한을 부여하는 방법으로 하나 이상의 AWS 리소스에 대한 어떤 작업을 수행할 수 있는지 허용 규칙을 JSON 형태로 작성하며, 이렇게 만들어진 Policy는 IAM User, Goup, Role에 연결된다.
+- IAM User: 실제 사용자 단 한명의 의미하며, AWS Account를 처음 만들때 Root Account와 다름을 주의할 것(Root Account에서 IAM 사용자를 만들어 AdministratorAccess를 부여하는 것을 권장)
+- IAM Group: 다수의 IAM User를 모아놓은 그룹으로 매번 IAM User에게 Policy를 직접 연결해야하는 번거로움을 그룹에 일괄 부여함으로써 과 관리 포인트를 줄이는 것이 목적이다.
+- IAM Role: AWS 서비스를 요청하기 위한 권한 세트를 정의하는 기능으로 일반적으로 Policy에 부여하는 권한과 같을 수 있다. 차이점은 IAM User, Group에 연결되지 않는다는 것이다. 대신 신뢰할 수 있는 IAM User나 앱, AWS 서비스가 역할을 맡는다. 여기서 신뢰할 수 있다는 말은 MFA와 같이 추가 인증을 통해 자격증명이 완료된 상태를 의미함. 
 
