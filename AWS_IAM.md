@@ -26,5 +26,15 @@ IAM 구분
 - IAM Policy: 권한을 부여하는 방법으로 하나 이상의 AWS 리소스에 대한 어떤 작업을 수행할 수 있는지 허용 규칙을 JSON 형태로 작성하며, 이렇게 만들어진 Policy는 IAM User, Goup, Role에 연결된다.
 - IAM User: 실제 사용자 단 한명의 의미하며, AWS Account를 처음 만들때 Root Account와 다름을 주의할 것(Root Account에서 IAM 사용자를 만들어 AdministratorAccess를 부여하는 것을 권장)
 - IAM Group: 다수의 IAM User를 모아놓은 그룹으로 매번 IAM User에게 Policy를 직접 연결해야하는 번거로움을 그룹에 일괄 부여함으로써 과 관리 포인트를 줄이는 것이 목적이다.
-- IAM Role: AWS 서비스를 요청하기 위한 권한 세트를 정의하는 기능으로 일반적으로 Policy에 부여하는 권한과 같을 수 있다. 차이점은 IAM User, Group에 연결되지 않는다는 것이다. 대신 신뢰할 수 있는 IAM User나 앱, AWS 서비스가 역할을 맡는다. 여기서 신뢰할 수 있다는 말은 MFA와 같이 추가 인증을 통해 자격증명이 완료된 상태를 의미함. 
+- IAM Role: AWS 서비스를 요청하기 위한 권한 세트를 정의하는 기능으로 일반적으로 Policy에 부여하는 권한과 같을 수 있다. 차이점은 IAM User, Group에 연결되지 않는다는 것이다. 대신 신뢰할 수 있는 IAM User나 앱, AWS 서비스가 역할을 맡는다. 여기서 신뢰할 수 있다는 말은 MFA와 같이 추가 인증을 통해 자격증명이 완료된 상태를 의미함.
+
+IAM Policy vs Role 차이점 정의
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/8f36f5f9-84c1-4028-8099-b1303886770e)
+- Policy는 IAM User, Group 단위로 할당되지만, Role은 다수의 User에 부여할 수 있음
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/4c002626-3a09-4d31-ac45-c75d04beffa6)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/b3d39f52-48b3-474e-8828-09aa64e20f91)
+- Policy는 회수하지않는한 장기 또는 영구적 자격 증명을 부여하지만, Role은 대상 User에게 세션을 위한 임시 보안 자격 증명을 제공함(즉 유예시간동안만 액세스가 허용되고 이후에는 Role을 반납하고 다시 자격증명 절차요구)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/5814eacd-4223-4185-be84-dd21f9a76e2d)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/ab729d34-1946-48cd-94aa-3531dd107ef3)
+
 
