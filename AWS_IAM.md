@@ -33,8 +33,10 @@ IAM Policy vs Role 차이점 정의
 - Policy는 IAM User, Group 단위로 할당되지만, Role은 다수의 User에 부여할 수 있음
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/4c002626-3a09-4d31-ac45-c75d04beffa6)
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/b3d39f52-48b3-474e-8828-09aa64e20f91)
-- Policy는 회수하지않는한 장기 또는 영구적 자격 증명을 부여하지만, Role은 대상 User에게 세션을 위한 임시 보안 자격 증명을 제공함(즉 유예시간동안만 액세스가 허용되고 이후에는 Role을 반납하고 다시 자격증명 절차요구)
+- Policy는 회수하지않는한 장기 또는 영구적 자격 증명을 부여하지만, Role은 대상 User에게 세션을 위한 임시 보안 자격 증명을 제공함. 즉 유예시간동안만 액세스가 허용되고 이후에는 Role을 반납하고 다시 자격증명 절차요구(자격증명 절차는 ID/PW 및 MFA인증을 지칭)
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/5814eacd-4223-4185-be84-dd21f9a76e2d)
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/ab729d34-1946-48cd-94aa-3531dd107ef3)
-
+- 정리하면 Policy는 명시적 허용 정책을 통해 AWS 리소스에 대한 거의 영구적으로 액세스 권한을 부여하고, 필요에 따라 해당 권한을 회수하거나 재부여하는 관리 리소스가 증가할 가능성이 높음
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/3429dbe5-7312-4015-b835-dc8b75bb093f)
+ 
 
