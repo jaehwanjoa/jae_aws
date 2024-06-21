@@ -30,7 +30,14 @@ Fault Domain은 데이터센터내 동일한 전원과 네트워크 스위치를
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/4065f89d-33b7-478c-ac76-965904ce9bad)
 
 3. 리소스
-- AWS, Azure에서 리소스는 플랫폼내 만들거나 구성할 수 있는 컴퓨팅 인스턴스, 스토리지, 기타 엔티티딩을 의미함
+- AWS, Azure에서 리소스는 플랫폼내 만들거나 구성할 수 있는 컴퓨팅 인스턴스, 스토리지, 기타 엔티티를 의미함
 - Azure 리소스는 Azure Resource Manager 또는 Azure 클래식 배포 모델 중 하나를 사용하여 배포 및 관리되며 모든 새 리소스는 Resource Manager 모델을 사용
 - 리소스그룹은 두 CSP에 동일한 엔터티를 갖지만 서로다른 구성 방식을 가지고 있음. Azure에서는 모든 리소스는 항상 하나의 리소스그룹과 연결되며, Azure Resource Manager가 사용하는 기본적인 그룹화 방법임
 - AWS 리소스 그룹은 필수는 아니지만, 태그 기반 또는 서비스 연결 기반으로 유사하게 기능을 적용할 수 있음
+- AWS는 RG에 종속되기 때문에 대상 RG를 삭제 시 모든 리소스가 삭제되지만, AWS는 아무런 영향도 없
+
+4. Resource 계층(Hierarchies)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/907b0dea-171f-4720-b179-dea9ddc0d79e)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/e62754dd-117b-4674-89d4-d68b53d7838c)
+
+
