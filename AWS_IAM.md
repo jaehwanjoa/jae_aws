@@ -41,3 +41,7 @@ IAM Policy vs Role 차이점 정의
 - Role은 비영구적이지만 일정 기간동안 AWS 리소스에 대한 액세스 권한을 부여하기 때문에, 회수 절차가 필요하지 않다는 장점이 있음
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/96b449e7-04f9-46bf-9ce0-33770ded9fd8)
 
+AWS Organizations vs AWS IAM Policy 차이점
+- Organizations는 AWS Account를 생성하고 그룹화(OU)하고 정책(SCP)을 적용한다면, IAM Policy는 리소스에 대한 액세스를 제어하고 사용자 및 그룹을 만들고 Access/deny를 설정할 수 있다.
+- 적용 범위: Organizations은 AWS Account가 대상이지만, IAM Policy는 사용자를 대상으로한다. Organizations에 SCP 적용 시 Account의 모든 사용자도 영향받기에 Organizations의 SCP 정책이 IAM Policy보다 우선시된다.
+- 추가 기능: Organizations은 OU별 거버넌스 경계를 만들고 백업/리소스/보안 정책 등을 중앙집중적으로 관리한다면, IAM Policy는 리소스에 대한 액세스 제어가 목적이다. 따라서 조직 단위 Account별 정책(백업, 리소스, 보안등)을 조정하고자한다면 Organizations SCP를, 사용자별 리소스 세부 권한을 조정하고자 한다면 IAM Policy를 사용한다.
