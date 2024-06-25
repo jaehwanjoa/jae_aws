@@ -12,3 +12,6 @@ AWS Control Tower는 안전한 멀티 계정 AWS 환경을 설정하고 관리�
 - 생성 확인:
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/93a769d0-d02d-4a09-bdc8-75679bb26393)
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/68595c71-3a17-4ee3-b43f-339ede10c2ca)
+
+2. 주요 특징
+- 
