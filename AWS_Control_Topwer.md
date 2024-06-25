@@ -9,3 +9,6 @@ AWS Control Tower는 안전한 멀티 계정 AWS 환경을 설정하고 관리�
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/97edb6fc-8d68-4bce-9225-d61c1b0fdfe3)
 - 공유 계정 및 암호화 구성: 각 항목을 관리할 Account를 설정함. '로그 아카이브 Account는 Cloud Trail에 대한 로그 관리'를, '감사 Account는 다른 계정의 보안 준수 여부를 관리'하며 'KMS 암호화는 AWS Control Tower 리소스를 KMS로 암호화로 관리'하는데 사용
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/2d601c1b-2c9a-431a-af57-63067ef967a3)
+- 생성 확인:
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/93a769d0-d02d-4a09-bdc8-75679bb26393)
+![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/68595c71-3a17-4ee3-b43f-339ede10c2ca)
