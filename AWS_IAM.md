@@ -63,7 +63,8 @@ IAM Policy 유형
  자격 증명 정책은 인라인 정책 뿐만 아니라, 관리형 정책을 선택할 수 있다. 관리형 정책은 고유한 정책으로 고유 ARN을 가지며 여러 자격 증명에 연결/분리할 수 있음
 ![image](https://github.com/user-attachments/assets/c7e90f6b-a1f9-4b25-b4bd-cb662b96d6b2)
 결론적으로 자격 증명 정책은 여러 자격 증명에 일괄 적용할 수 있다는 점과 버전 관리와 롤백에서 장점이 있으며, 리소스 관리 정책(인라인 정책)은 특정 자격 증명에만 적용되므로 다른 정책을 공유하여 의도하지 않은 변경이 발생할 가능성이 적다는 이점이 있음
-3. 누가 정책을 관리하는가: 정책을 누가 관리하는지에 따라 분류함. 
+3. 누가 정책을 관리하는가: 정책을 누가 관리하는지에 따라 분류함.
+![image](https://github.com/user-attachments/assets/83a4a7c8-9e6d-4b82-a021-b867f60b11bc)
 ![image](https://github.com/user-attachments/assets/afa99024-27a2-4656-82ae-6b355d590d1f)
 
    
