@@ -45,3 +45,9 @@ AWS Organizations vs AWS IAM Policy 차이점
 - Organizations는 AWS Account를 생성하고 그룹화(OU)하고 정책(SCP)을 적용한다면, IAM Policy는 리소스에 대한 액세스를 제어하고 사용자 및 그룹을 만들고 Access/deny를 설정할 수 있다.
 - 적용 범위: Organizations은 AWS Account가 대상이지만, IAM Policy는 사용자를 대상으로한다. Organizations에 SCP 적용 시 Account의 모든 사용자도 영향받기에 Organizations의 SCP 정책이 IAM Policy보다 우선시된다.
 - 추가 기능: Organizations은 OU별 거버넌스 경계를 만들고 백업/리소스/보안 정책 등을 중앙집중적으로 관리한다면, IAM Policy는 리소스에 대한 액세스 제어가 목적이다. 따라서 조직 단위 Account별 정책(백업, 리소스, 보안등)을 조정하고자한다면 Organizations SCP를, 사용자별 리소스 세부 권한을 조정하고자 한다면 IAM Policy를 사용한다.
+
+IAM Access Analyzer
+![image](https://github.com/user-attachments/assets/72151246-e6f4-4569-9d13-aa32d2687c51)
+외부 액세스 분석기: 신뢰 영역 내에 있지 않은 보안 주체에게 신뢰 영역 내 리소스에 대한 액세스 권한을 부여하는 리소스 기반 정책의 각 인스턴스에 대한 조사 결과를 생성합니다(일반적으로 AWS 리소스에 대한 퍼블릭 액세스 현황을 표시합니다.)
+![image](https://github.com/user-attachments/assets/51e64814-873f-49ec-9edd-e53e765f8d9f)
+미사용 액세스 분석기: 역할에 대해 사용되지 않은 액세스 결과에 대한 분석기를 생성합니다. 분석기를 생성하면 액세스 활동을 검토하여 사용되지 않는 액세스를 식별합니다.
