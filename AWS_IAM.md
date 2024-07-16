@@ -41,6 +41,29 @@ IAM Policy vs Role 차이점 정의
 - Role은 비영구적이지만 일정 기간동안 AWS 리소스에 대한 액세스 권한을 부여하기 때문에, 회수 절차가 필요하지 않다는 장점이 있음
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/96b449e7-04f9-46bf-9ce0-33770ded9fd8)
 
+IAM Policy 유형
+1. 자격 증명 기반 정책: 자격 증명(사용자 그룹, 사용자, 역할)이 어느 리소스에서 어떤 작업을 수행할 수 있는지 제어하는 정책
+2. 리소스 기반 정책: 리소스에 연결되는 정책(기본적으로 인라인)으로 수행할 수 있는 작업(허용/거부)을 규정한다.
+![image](https://github.com/user-attachments/assets/34818773-8f86-4e2a-832a-6c525f086f2e)
+3. 고객 관리형 정책: 사용자가 AWS 계정에서 생성한 독립적인 정책으로 AWS 계정에 속한 다수의 자격 증명에 연결할 수 있음
+![image](https://github.com/user-attachments/assets/846c79c4-24c8-42a8-a056-ec89f045c589)
+4. AWS 관리형 정책: AWS에서 생성 및 관리하는 독립적인 정책으로 ~FullAccess, ~PowerUser, [Read/Write]OnlyAccess 등 AWS 서비스에 대한 특정 액세스 수준을 제공
+![image](https://github.com/user-attachments/assets/be4bbadc-220b-49b9-a0db-49523b923a18)
+5. AWS 관리형 정책 - 직무: IT 업계의 직무 기능을 AWS 정책을 구현함. PowerUserAccess, Billing, SecurityAUdit 등 각 직무에 대해 예상되는 작업에 따라 필요 권한을 부여할 수 있다.
+![image](https://github.com/user-attachments/assets/fb39d24b-08c1-48f7-a71f-ec50c04bc859)
+6. 권한 경계: 자격 증명 기반 정책에서 IAM 엔터티에 부여할 수 있는 최대 권한을 설정. 
+
+정책 사용에 대한 가이드라인
+![image](https://github.com/user-attachments/assets/f830d5ce-05f5-4ede-a431-3518f70412d4)
+1. 연결할 대상: 정책을 적용할 대상을 규정한다. 자격 증명 기반 정책은 일반적인 IAM 정책으로써, 열결대상에 대한 [~에 대해 ~할 수 있다/없다]의 권한을 부여함. 리소스 기반은 연결 대상 리소스에 [~가 ~하기 위해 접근하는 것을 허용/거부]한다를 의미함.
+![image](https://github.com/user-attachments/assets/0d4f9ce7-3dc5-432d-87b1-b3ecf17d159d)
+
+2. 독립적으로 사용되는가: 독립형인지 연결 대상의 일부인지 분류함. 리소스 기반 정책은 항상 인라인 정책이며 연결 대상 리소스의 매개 변수 중 하나로 직접 포함되며 정책 자체에는 ARN이 없음
+![image](https://github.com/user-attachments/assets/991b415c-5ade-4ee3-b9a6-7846bca103db)
+ 자격 증명 정책은 인라인 정책 뿐만 아니라, 관리형 정책을 선택할 수 있다. 관리형 정책은 고유한 정책으로 고유 ARN을 가지며 여러 자격 증명에 연결/분리할 수 있음
+![image](https://github.com/user-attachments/assets/c7e90f6b-a1f9-4b25-b4bd-cb662b96d6b2)
+결론적으로 자격 증명 정책은 여러 자격 증명에 일괄 적용할 수 있다는 점과 버전 관리와 롤백에서 장점이 있으며, 리소스 관리 정책(인라인 정책)은 특정 자격 증명에만 적용되므로 다른 정책을 공유하여 의도하지 않은 변경이 발생할 가능성이 적다는 이점이 있음
+
 AWS Organizations vs AWS IAM Policy 차이점
 - Organizations는 AWS Account를 생성하고 그룹화(OU)하고 정책(SCP)을 적용한다면, IAM Policy는 리소스에 대한 액세스를 제어하고 사용자 및 그룹을 만들고 Access/deny를 설정할 수 있다.
 - 적용 범위: Organizations은 AWS Account가 대상이지만, IAM Policy는 사용자를 대상으로한다. Organizations에 SCP 적용 시 Account의 모든 사용자도 영향받기에 Organizations의 SCP 정책이 IAM Policy보다 우선시된다.
