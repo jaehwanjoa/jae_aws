@@ -50,7 +50,16 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/c9220ce2-c79e-43aa-9f70-f01c9ee00bab)
 처음 활성화 시 기본 baseline을 설정하는 학습 시간이 필요한. 최대 2주 동안 관련 비정상적인 로그인 결과가 있어야함.
 
-- GuardDuty 런타임 모니터링: 보안 에이전트를 사용하여 파일과 같은 런타임 동작에 가시성을 추가합니다. 액세스, 프로세스 실행, 커맨드 입력 및 네트워크 연결 등 잠재적 위협에 대해 모니터링하려는 각 리소스등에서 보안을 관리할 수 있음. 에이전트를 자동/수동 배포할 수 있음
+- GuardDuty 런타임 이벤트 모니터링: 보안 에이전트를 사용하여 파일과 같은 런타임 동작에 가시성을 추가합니다. 액세스, 프로세스 실행, 커맨드 입력 및 네트워크 연결 등 잠재적 위협에 대해 모니터링하려는 각 리소스등에서 보안을 관리할 수 있음. 에이전트를 자동/수동 배포할 수 있음
+
   1)EC2 인스턴스에서 런타임 모니터링 작동방식: 현재 실행 중인 이벤트 및 Amazon EC2 인스턴스 내 새로운 프로세스 데이터가 보안 에이전트를 통해 수집되며, GuardDuty로 전송합니다. 보안 에이전트는 인스턴스 수준에서 동작하며, 선택적 인스턴스인 경우 보안 에이전트가 선택적으로 설치될 수 있음
   2)EKS 클러스터에서 런타임 모니터링 작동방식: GuardDuty 보안 에이전트인 EKS 추가 기능 aws-guardduty-agent가 구성되며, EKS 클러스터에서 런타임 이벤트를 수신합니다. 자동/수동 배포할 수 있으며 자동 구성 시, Amazon Virtual Private Cloud(VPC) 엔드포인트가 자동 생성됩니다. AWS Fargate(서버리스 Azure 컨테이너 인스턴스와 유사)에서 실행되는 EKS 클러스터는 현재 지원하지 않음!!!
   3)Fargate에서 런타임 모니터링 작동방식(AWS ECS/Elastic Container Service): 현재 런타임 모니터링은 GuardDuty를 통해서만 AWS ECS(Fargate)에 대한 보안 에이전트 관리를 지원합니다(시중에 Container Injection or CaaS Sidcar 방식으로 배포되는 경우가 있음)
+  4)배포방식: 런타임 이벤트는 대상 EC2가 SSM(AWS System Manager Agent) 관리 대상이어야 한다는 전제 조건이 필요함. 자동 에이전트는 관련 기능 활성화가 필요하면 태그 값에 'GuardDutyManaged:true/false' 다음 값 입력 시 대상을 포함/제외할 수 있음
+  ![image](https://github.com/user-attachments/assets/b512358e-de1f-4190-8915-4b74382e886b)
+  수동 에이전트 구성 시
+  제약 사항
+  ![image](https://github.com/user-attachments/assets/890ce692-ca61-4fe3-a184-8b4ea0e8b6d4)
+  ![image](https://github.com/user-attachments/assets/a6caedf4-b5d3-4387-8a16-ebc156a8146e)
+
+
