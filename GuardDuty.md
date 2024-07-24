@@ -58,6 +58,7 @@ OpenDNS 또는 구글DNS와 같은 퍼블릭 DNS를 사용하는 경우 GuardDut
   4)배포방식: 런타임 이벤트는 대상 EC2가 SSM(AWS System Manager Agent) 관리 대상이어야 한다는 전제 조건이 필요함. 자동 에이전트는 관련 기능 활성화가 필요하면 태그 값에 'GuardDutyManaged:true/false' 다음 값 입력 시 대상을 포함/제외할 수 있음
   ![image](https://github.com/user-attachments/assets/b512358e-de1f-4190-8915-4b74382e886b)
   수동 에이전트 구성 시
+  
   제약 사항
   ![image](https://github.com/user-attachments/assets/890ce692-ca61-4fe3-a184-8b4ea0e8b6d4)
   ![image](https://github.com/user-attachments/assets/a6caedf4-b5d3-4387-8a16-ebc156a8146e)
