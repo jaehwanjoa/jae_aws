@@ -18,8 +18,12 @@
   
 4. 작동 방식
 ![image](https://github.com/user-attachments/assets/a204caa0-b67f-4af4-a4f0-029c5886d170)
-
 5. WCU: AWS WAF 웹 ACL 용량 단위를 지칭. 규칙 그룹 및 웹 ACL을 실행하는 데 필요한 운영 리소스를 계산하고 제어해야 합니다.
 - 규칙 WCU: 규칙을 생성, 업데이트할 때 규칙 용량을 계산함. 실행 비용이 적게 드는 간단한 규칙은 처리 능력을 더 많이 사용하는 복잡한 규칙에 비해 WCU를 적게 사용함
 - 규칙 그룹 WCU: 최대 용량은 5000WCU로써 규칙 그룹을 수정할 떄 해당 용량 내에 유지되도록 해야함
 - 웹 ACL WCU: 웹 ACL의 기본 가격에는 1500 WCU가 포함되며, 최대 용량은 5000WCU. 그 이상 사용 시 추가 요금이 발생함
+6. 로깅 및 모니터링 방법
+AWS WAF > Web ACLs > 로깅 및 메트릭 활성화, 활성화한 s3 버킷이름 체크
+![image](https://github.com/user-attachments/assets/975c7777-ced6-4b02-96d8-5917c9a47e88)
+s3 + Athena 확인방안: s3에서 s3 uri 체크
+![image](https://github.com/user-attachments/assets/cb25898d-7f40-4a58-b147-7a6ab1fb823f)
