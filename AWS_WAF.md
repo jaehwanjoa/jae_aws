@@ -30,4 +30,6 @@ s3 + Athena 확인방안: s3에서 s3 uri 체크(년/월/일 형태의 폴더에
 'https://docs.aws.amazon.com/ko_kr/athena/latest/ug/waf-logs.html' <- 분할없이 WAF 로그 테이블 생성 참조
 서버리스 쿼리 서비스인 Athena에서 WAF 로그 테이블 생성(추가 액션이 없는한 영구적으로 생성, 1회만 수행). 아까 체크한 s3 url를 쿼리내 수정 후 실행
 ![image](https://github.com/user-attachments/assets/22d44157-0496-48c0-9889-3b52955fe0ae)
+생성한 WAF 로그 테이블을 쿼리하면 로깅된 이벤트 정보를 확인할 수 있음
+![image](https://github.com/user-attachments/assets/95295f6f-ca79-448c-bbe6-ef5fd3084e23)
 
