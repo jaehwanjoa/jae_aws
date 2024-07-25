@@ -32,4 +32,28 @@ s3 + Athena 확인방안: s3에서 s3 uri 체크(년/월/일 형태의 폴더에
 ![image](https://github.com/user-attachments/assets/22d44157-0496-48c0-9889-3b52955fe0ae)
 생성한 WAF 로그 테이블을 쿼리하면 로깅된 이벤트 정보를 확인할 수 있음
 ![image](https://github.com/user-attachments/assets/95295f6f-ca79-448c-bbe6-ef5fd3084e23)
-
+다음은 AWS WAF의 로그 필드이다. 참고할 것!
+1. timestamp: 이벤트가 발생한 시간과 날짜입니다. 일반적으로 UTC 시간으로 기록됩니다.
+2. action: AWS WAF에서 수행된 액션(허용, 차단, CAPTCHA 또는 챌린지)입니다.
+3. httpMethod: 요청의 HTTP 메소드
+4. httprequest: 요청에 대한 메타데이터.
+5. httpsourceid: 연결된 리소스의 ID입니다.
+6. httpSourceName: ex)CF=CloudFront, APIGW=API Gateway 등
+7. httpVersion: HTTP 버전
+8. ja3Fingerprint: 요청의 JA3 지문. 클라이언트 TLS 구성의 고유 식별자 역할을 하며, 웹 ACL 규칙에서 JA3 지문 일치를 구성할 때 이 값을 제공.
+9. labels: 웹 요청을 평가하는 데 사용된 규칙에 따라 적용. AWS WAF 처음 100개의 레이블을 기록함
+10. nonterminatingmatchingrules: 요청과 일치하는 종료되지 않는 규칙 목록.
+11. oversizeFields: 웹 ACL에서 검사한 웹 요청 중 검사 한도를 초과한 필드 목록.
+12. ratebasedrulelist: 속도 기반 규칙의 목록
+13. requestHeadersInserted: 사용자 지정 요청 처리를 위해 삽입된 헤더 목록.
+14. requestId: 기본 호스트 서비스에 생성되는 요청ID. ALB 경우 추적 ID입니다. 
+15. responseCodeSent: 사용자 지정 응답과 함께 전송된 응답 코드.
+16. ruleGroupId: 규칙 그룹ID. 규칙에서 요청을 차단한 경우 ruleGroupID는 terminatingRuleId의 ID와 동일함.
+17. ruleGroupList: 일치 정보가 포함된 이 요청에 작용하는 규칙 그룹 목록.
+18. terminatingRule: 요청을 종료한 규칙. 
+19. terminatingRuleId: 요청을 종료한 규칙ID. 요청을 종료하는 규칙이 없으면 Default_Action.
+20. terminatingrulematchdetails: 웹 요청에 대한 검사 프로세스를 종료하는 작업이 포함되어 있음
+ex)SQL 명령어 삽입 및 크로스 사이트 스크립팅(XSS) 일치 규칙 문에 대해서만 채워집니다. 
+21. terminatingRuleType: 요청을 종료한 규칙의 유형. ex)RATE_BASED, REGULAR, GROUP 및 MANAGED_RULE_GROUP.
+22. uri: 요청의 URL
+23. webaclid: 웹 ACL의 GUID
