@@ -32,6 +32,7 @@ s3 + Athena 확인방안: s3에서 s3 uri 체크(년/월/일 형태의 폴더에
 ![image](https://github.com/user-attachments/assets/22d44157-0496-48c0-9889-3b52955fe0ae)
 생성한 WAF 로그 테이블을 쿼리하면 로깅된 이벤트 정보를 확인할 수 있음
 ![image](https://github.com/user-attachments/assets/95295f6f-ca79-448c-bbe6-ef5fd3084e23)
+
 다음은 AWS WAF의 로그 필드이다. 참고할 것!
 1. timestamp: 이벤트가 발생한 시간과 날짜입니다. 일반적으로 UTC 시간으로 기록됩니다.
 2. action: AWS WAF에서 수행된 액션(허용, 차단, CAPTCHA 또는 챌린지)입니다.
