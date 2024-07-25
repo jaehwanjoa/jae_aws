@@ -25,5 +25,8 @@
 6. 로깅 및 모니터링 방법
 AWS WAF > Web ACLs > 로깅 및 메트릭 활성화, 활성화한 s3 버킷이름 체크
 ![image](https://github.com/user-attachments/assets/975c7777-ced6-4b02-96d8-5917c9a47e88)
-s3 + Athena 확인방안: s3에서 s3 uri 체크
-![image](https://github.com/user-attachments/assets/cb25898d-7f40-4a58-b147-7a6ab1fb823f)
+s3 + Athena 확인방안: s3에서 s3 uri 체크(년/월/일 형태의 폴더에서 URI를 체크하면, 해당 기간동안 테이블을 생성할 수 있음)
+![image](https://github.com/user-attachments/assets/8410ef40-a1e4-4981-b7aa-74b52c307439)
+'https://docs.aws.amazon.com/ko_kr/athena/latest/ug/waf-logs.html' <- 분할없이 WAF 로그 테이블 생성 참조
+서버리스 쿼리 서비스인 Athena에서 WAF 로그 테이블 생성(추가 액션이 없는한 영구적으로 생성, 1회만 수행)
+![image](https://github.com/user-attachments/assets/1676bb23-5625-4ca5-8e79-1a1dd417029c)
