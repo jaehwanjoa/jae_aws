@@ -58,3 +58,4 @@ ex)SQL 명령어 삽입 및 크로스 사이트 스크립팅(XSS) 일치 규칙 
 21. terminatingRuleType: 요청을 종료한 규칙의 유형. ex)RATE_BASED, REGULAR, GROUP 및 MANAGED_RULE_GROUP.
 22. uri: 요청의 URL
 23. webaclid: 웹 ACL의 GUID
+
