@@ -1,3 +1,4 @@
+OpenSearch를 활용한 보안이벤트 중앙화 방안
 ![image](https://github.com/user-attachments/assets/c9ed4636-a465-4459-b259-18c27fcc3014)
 1. 로그 스트리밍을 위한 기본 계정의 Amazon CloudWatch Log가 대상입니다.
 2. (선택사항)AWS CloudTrail, VPC Flow Log 및 EC2 웹서버에 대한 샘플 CloudWatch Logs
