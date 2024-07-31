@@ -7,7 +7,7 @@ aws configservice get-conformance-pack-compliance-details --conformance-pack-nam
 3. S3 저장
 aws s3 cp /root/compliance3.json s3://202040710-jaehwan-test/prowler/ --profile jaehwan.myeong
 4. csv 변환
-엑셀로 실행 시 레코드가 깨져서 식별이 어려운 경우가 있다. 다음 파이썬 코드 실행
+엑셀로 실행 시 레코드가 깨져서 식별이 어려운 경우가 있다. 다음 파이썬 코드 실행(소스 코드는 'aws_config_conver_csv.py'에서 확인할 것)
 ![image](https://github.com/user-attachments/assets/41e81175-cab8-4efc-ab9f-4a8adf4a2582)
 5. 결과 출력
 ![image](https://github.com/user-attachments/assets/58e09661-1188-49cd-99b0-00077d65e179)
