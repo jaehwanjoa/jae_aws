@@ -28,4 +28,10 @@ CloudTrail이 S3로 로그 파일을 전송 후 수정, 삭제 또는 변경되�
 - 작동 방식: 모든 로그 파일에 해시를 생성하고, 해시는 CloudTrail-Digest에 *.json 형태로 기록됨
 ![image](https://github.com/user-attachments/assets/504d53d7-df43-4c00-8495-f2384bf084c4)
 - 무결성 검사: 자체 솔루션을 사용하거나 AWS CLI를 활용할 수 있음 
-
+- 사용 예제(CLI):
+![image](https://github.com/user-attachments/assets/09062633-782b-44c8-96ef-77e93a3dc66a)
+aws cloudtrail validate-logs --trail-arn <trailARN> --start-time <start-time> [--end-time <end-time>] [--s3-bucket <amzn-s3-demo-bucket>] [--s3-prefix <prefix>] [--account-id <account-id>] [--verbose]
+aws cloudtrail validate-logs --trail-arn arn:aws:cloudtrail:ap-northeast-2:747935822721:trail/cloudtrail --start-time 2024-08-12T071415Z --end-time 2024-08-12T071415Z --verbose
+![image](https://github.com/user-attachments/assets/0c101b3a-9452-4210-9475-fa62f06cf1fd)
+start-time 과 end-time은 무결성 검사 기간을 의미함. 파일명의 시간을 참고하여 입력하도록한다.
+![image](https://github.com/user-attachments/assets/9794effb-c0c9-4565-b063-835dea469ce3)
