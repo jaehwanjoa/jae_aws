@@ -21,5 +21,11 @@ AWS에서 비정상적인 API 호출 속도 또는 API 오류 율 활동을 캡�
 ![image](https://github.com/jaehwanjoa/jae_aws/assets/90813478/f533a887-f69d-474d-83e4-af49abeac7e7)
 ex)계정은 일반적으로 분당 20개 이하의 S3 API 호출을 기록하지만, 분당 평균 100개의 API 호출을 기록하기 시작함. 정상 활동과 비정상 활동을 비교하기 위함
 
-
+5. 로그 파일 검증
+CloudTrail이 S3로 로그 파일을 전송 후 수정, 삭제 또는 변경되지 않았는지 확인하려면 로그 파일 무결성 검증을 사용할 수 있습니다. 
+![image](https://github.com/user-attachments/assets/9f898192-398e-414b-bec8-dcfbe5d84db1)
+아래와 같은 상황을 유출할 수 있음: ex)CloudTrail상에 API 활동 기록이 있지만, 사용자가 다시 수정함(기록있음), 또는 로그 기록을 믿지 못하겠다. 이러한 경우 유용하게 활용할 수 있음
+- 작동 방식: 모든 로그 파일에 해시를 생성하고, 해시는 CloudTrail-Digest에 *.json 형태로 기록됨
+![image](https://github.com/user-attachments/assets/504d53d7-df43-4c00-8495-f2384bf084c4)
+- 무결성 검사: 자체 솔루션을 사용하거나 AWS CLI를 활용할 수 있음 
 
