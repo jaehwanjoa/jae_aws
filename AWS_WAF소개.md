@@ -14,8 +14,7 @@
 - 기준에 맞는 요청 수 계산: 처리 방법을 수정하지 않고도 카운트 작업을 사용하여 웹 트래픽을 추적. 이를 일반 모니터링에 사용할 수 있으며, 새 웹 요청 처리 규칙을 테스트하는데도 사용할 수 있음. 웹 요청의 새 속성을 기반으로 요청을 허용하거나 차단하려는 경우 먼저 해당 속성과 일치하는 요청을 AWS WAF 계산하도록 구성할 수 있음. 이렇게하면 일치 요청을 허용하거나 차단하도록 규칙을 전환하기 전에 새 구성 설정을 확인할 수 있음
 - 기준에 맞는 요청에 대한 CAPTCHA 또는 챌린지 검사 실행: 요청에 대해 CAPTCHA 및 자동 챌린지 제어를 구현하여 보호된 리소스로 향하는 봇 트래픽을 줄일 수 있음
 - 웹 요청의 특성을 사용하여 기준 정의: 요청이 시작되는 IP 주소/국가/헤더 값/문자열(특정 또는 정규식), 요청 길이, 악성일 가능성이 있는 SQL 코드의 존재, 악성일 가능성이 있는 스크립트의 존재(XSS)
-- 지정 기준을 충족하는 웹 요청을 허용/차단할 수 있는 규칙 생성: 1분 또는 5분 내 지정된 요청 수를 초과하는 웹 요청을 차단하거나 카운트할 수 있는 정책을 생성할 수 있음
-  
+- 지정 기준을 충족하는 웹 요청을 허용/차단할 수 있는 규칙 생성: 1분 또는 5분 내 지정된 요청 수를 초과하는 웹 요청을 차단하거나 카운트할 수 있는 정책을 생성할 수 있음 
 4. 작동 방식
 ![image](https://github.com/user-attachments/assets/a204caa0-b67f-4af4-a4f0-029c5886d170)
 5. WCU: AWS WAF 웹 ACL 용량 단위를 지칭. 규칙 그룹 및 웹 ACL을 실행하는 데 필요한 운영 리소스를 계산하고 제어해야 합니다.
@@ -58,4 +57,15 @@ ex)SQL 명령어 삽입 및 크로스 사이트 스크립팅(XSS) 일치 규칙 
 21. terminatingRuleType: 요청을 종료한 규칙의 유형. ex)RATE_BASED, REGULAR, GROUP 및 MANAGED_RULE_GROUP.
 22. uri: 요청의 URL
 23. webaclid: 웹 ACL의 GUID
+
+7. AWS WAF 구성 현황 엑셀로 저장 방법
+액세스 키 발급 및 AWSWAFReadOnlyAccess 권한 부여
+![image](https://github.com/user-attachments/assets/665d8d82-3ff2-4856-a007-8970034b86dd)
+다음 코드를 실행한다
+https://raw.githubusercontent.com/jaehwanjoa/jae_aws/main/aws_waf_info.py
+다음 값은 반드시 입력이 필요함
+![image](https://github.com/user-attachments/assets/69a3f995-caef-4f71-87eb-6e54383a8b8c)
+다음과 같이 결과 값이 엑셀로 저장됨
+![image](https://github.com/user-attachments/assets/2da9df67-a22b-4bb1-be47-a670e3373d27)
+
 
