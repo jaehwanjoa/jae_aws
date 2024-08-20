@@ -19,3 +19,17 @@ GROUP BY httprequest.uri
 ORDER BY requests DESC
 LIMIT 10 
 ![image](https://github.com/user-attachments/assets/35b1f784-73ad-4b0c-acef-7f760c569b43)
+
+4) IP와 매치되는 모든 라벨 쿼리
+- SELECT count(*) AS count,httprequest.clientip,
+label_item.name
+FROM "waf_logs_jae", UNNEST( CASE WHEN cardinality(labels) >= 1
+               THEN labels
+               ELSE ARRAY[ cast( row('NOLABEL') as row(name varchar)) ]
+              END
+       ) AS t(label_item)
+WHERE 
+ date >=date_format(current_date - interval '7' day, '%Y/%m/%d')  
+GROUP BY httprequest.clientip,label_item.name
+ORDER BY  clientip
+![image](https://github.com/user-attachments/assets/22e5ff51-7ba2-4cb0-a338-0c2411a13f1f)
