@@ -4,11 +4,18 @@
 ![image](https://github.com/user-attachments/assets/c6b87ded-6541-4f73-a54d-c818db1e8093)
 
 2) 특정 기간동안 탐지된 IP 기준 Top 10
-SELECT httprequest.clientip, count(httprequest.clientip) AS requests FROM waf_logs_jae
+- SELECT httprequest.clientip, count(httprequest.clientip) AS requests FROM waf_logs_jae
 where from_unixtime(timestamp / 1000) BETWEEN timestamp '2024-07-01 00:00:00' AND timestamp '2024-07-02 23:59:59' 
---WHERE date >= date_format(current_date - interval '7' day, '%Y/%m/%d')--
 GROUP BY httprequest.clientip --동일한 IP 주소를 가진 모든 로그를 그룹화--
 ORDER BY requests DESC --requests 요청 수에 따라 내림차순으로 정렬--
 LIMIT 10
 ![image](https://github.com/user-attachments/assets/e3e32c81-48b3-42fb-a1c9-ac260f201744)
-3) ㅇ
+
+3) 특정 기간동안 가장 많이 액세스한 URI 기준 Top 10
+- SELECT httprequest.uri, count(httprequest.uri) as requests
+FROM waf_logs_jae
+where from_unixtime(timestamp / 1000) BETWEEN timestamp '2024-07-01 00:00:00' AND timestamp '2024-07-02 23:59:59' 
+GROUP BY httprequest.uri
+ORDER BY requests DESC
+LIMIT 10 
+![image](https://github.com/user-attachments/assets/35b1f784-73ad-4b0c-acef-7f760c569b43)
