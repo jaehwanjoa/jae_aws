@@ -81,7 +81,7 @@ def get_regex_pattern_set(name, scope, regex_pattern_set_id):
         print(f"An error occurred while getting Regex Pattern Set: {e}")
         return None
 
-# 설정할 값들(입력필요)
+# 설정할 값들(!!반드시입력필요!!)
 web_acl_name = 'Juice-Shop-WAF' 
 web_acl_scope = 'REGIONAL'
 web_acl_id = 'ca289688-261c-4808-be2a-29ee93707514'
