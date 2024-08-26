@@ -1,0 +1,53 @@
+{
+  "Parameters":{
+  "ConfigS3Bucket": {
+      "Description": "The S3 Bucket which stores config information and files.",
+      "Type": "String"
+  },
+  "DataBase": {
+      "Description": "The Database in athena in which you would like to create table",
+      "Type": "String",
+      "Default": "default"
+  },
+  "CreateQueryName": {
+      "Description": "Name of the Table Creation query",
+      "Type": "String",
+      "Default": "ConfigTableCreation"
+  },
+  "SelectQueryName": {
+      "Description": "Name information extraction query",
+      "Type": "String",
+      "Default": "ConfigItemCountQuery"
+  },
+  "ConfigCaptureStartTime": {
+      "Description": "The start time from where the Configuration item capture information to be checked",
+      "Type": "String",
+      "Default": "2020-06-01T%"
+  },
+  "ConfigCaptureEndTime": {
+      "Description": "The end time till where the Configuration item capture information to be checked",
+      "Type": "String",
+      "Default": "2020-06-30T%"
+  }
+},
+  "Resources": {
+    "AthenaNamedQuery": {
+      "Type": "AWS::Athena::NamedQuery",
+      "Properties": {
+        "Database": { "Ref": "DataBase" },
+        "Description": "A query that selects all aggregated data",
+        "Name": { "Ref": "CreateQueryName" },
+        "QueryString": {"Fn::Sub": "CREATE EXTERNAL TABLE awsconfig ( fileversion string, configSnapshotId string, configurationitems ARRAY < STRUCT < configurationItemVersion : STRING, configurationItemCaptureTime : STRING, configurationStateId : BIGINT, awsAccountId : STRING, configurationItemStatus : STRING, resourceType : STRING, resourceId : STRING, resourceName : STRING, ARN : STRING, awsRegion : STRING, availabilityZone : STRING, configurationStateMd5Hash : STRING, resourceCreationTime : STRING > > ) ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe' LOCATION 's3://${ConfigS3Bucket}/AWSLogs/${AWS::AccountId}/Config/${AWS::Region}/';"}
+      }
+    },
+  "AthenaSelectQuery": {
+    "Type": "AWS::Athena::NamedQuery",
+    "Properties": {
+      "Database": { "Ref": "DataBase" },
+      "Description": "A query that selects all aggregated data",
+      "Name": { "Ref": "SelectQueryName" },
+      "QueryString": {"Fn::Sub": "SELECT configurationItem.resourceType, configurationItem.resourceId, COUNT(configurationItem.resourceId) AS NumberOfChanges FROM default.awsconfig CROSS JOIN UNNEST(configurationitems) AS t(configurationItem) WHERE \"$path\" LIKE '%ConfigHistory%' AND configurationItem.configurationItemCaptureTime >= '${ConfigCaptureStartTime}' AND configurationItem.configurationItemCaptureTime <= '${ConfigCaptureEndTime}' GROUP BY  configurationItem.resourceType, configurationItem.resourceId ORDER BY  NumberOfChanges DESC"}
+    }
+  }
+}
+}
