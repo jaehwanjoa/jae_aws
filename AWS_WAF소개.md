@@ -59,13 +59,16 @@ ex)SQL 명령어 삽입 및 크로스 사이트 스크립팅(XSS) 일치 규칙 
 23. webaclid: 웹 ACL의 GUID
 
 7. AWS WAF 구성 현황 엑셀로 저장 방법
-액세스 키 발급 및 AWSWAFReadOnlyAccess 권한 부여
+- 액세스 키 발급 및 AWSWAFReadOnlyAccess 권한 부여
 ![image](https://github.com/user-attachments/assets/665d8d82-3ff2-4856-a007-8970034b86dd)
 다음 코드를 실행한다
 https://raw.githubusercontent.com/jaehwanjoa/jae_aws/main/aws_waf_info.py
-다음 값은 반드시 입력이 필요함
+- 다음 값은 반드시 입력이 필요함
 ![image](https://github.com/user-attachments/assets/69a3f995-caef-4f71-87eb-6e54383a8b8c)
-다음과 같이 결과 값이 엑셀로 저장됨
+- 다음과 같이 결과 값이 엑셀로 저장됨
 ![image](https://github.com/user-attachments/assets/2da9df67-a22b-4bb1-be47-a670e3373d27)
 
+8. 아테나에서 AWS WAF 쿼리방법
+![image](https://github.com/user-attachments/assets/33a256b3-4bd5-4400-a09b-1d090ebb94f1)
+![image](https://github.com/user-attachments/assets/1e0d8647-6e80-4caf-b3e8-9dd9e006f966)
 
