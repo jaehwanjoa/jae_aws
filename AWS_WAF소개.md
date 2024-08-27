@@ -71,4 +71,5 @@ https://raw.githubusercontent.com/jaehwanjoa/jae_aws/main/aws_waf_info.py
 8. 아테나에서 AWS WAF 쿼리방법
 ![image](https://github.com/user-attachments/assets/33a256b3-4bd5-4400-a09b-1d090ebb94f1)
 ![image](https://github.com/user-attachments/assets/1e0d8647-6e80-4caf-b3e8-9dd9e006f966)
+![image](https://github.com/user-attachments/assets/16b5a327-5d70-49bf-b922-4f266e60743f)
 
