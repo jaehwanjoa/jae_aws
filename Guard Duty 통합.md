@@ -76,7 +76,7 @@ aws events put-targets \
 
 ```
 
-## 4. 사용자 지정 이벤트 버스 생성(목적지 계정에서 수행)
+## 3. 사용자 지정 이벤트 버스 생성(목적지 계정에서 수행)
 
 AWS CloudShell에서 아래와 같이 사용자 지정 이벤트 버스를 생성합니다.
 
@@ -92,7 +92,7 @@ aws events put-permission \
   --principal <SOURCE_ACCOUNT_ID>
 
 ```
-## 5. 이벤트 버스 규칙 생성(목적지 계정에서 수행)
+## 4. 이벤트 버스 규칙 생성(목적지 계정에서 수행)
 
 AWS CloudShell에서 아래와 같이 이벤트 버스 규칙을 생성합니다.
 
@@ -108,7 +108,8 @@ aws events put-rule \
 이벤트 버스 규칙 타겟으로 람다 지정 
 ```bash
 aws events put-targets \
+  --event-bus-name ons-central-bus \
   --rule guardduty-from-security \
-  --targets Id="LambdaTarget",Arn="{Lambda ARN}"
+  --targets Id="LambdaTarget",Arn="arn:aws:lambda:ap-northeast-2:747935822721:function:CJI-GuardDuty-Alarm"
 
 ```
