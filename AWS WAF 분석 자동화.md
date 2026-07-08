@@ -3,6 +3,63 @@
 Notebook, Amazon Bedrock을 활용하였습니다. Athena 쿼리 결과(Excel) 파일을 필요로하며, Bedrock 내 Claud AI가 TOP5 형식으로 분석을 수행합니다.
 
 ---
+## 아키텍처 구조
+1. Athena에서 WAF 로그 조회<br>
+2. Athena 결과를 Excel로 저장 ex)06_waf_alb.xlsx
+3. <S3 버킷>/WAF_Report/upload/ 폴더에 파일 업로드
+4. S3 객체 변동 시 Lambda 트리거 -> SageMaker Processing Job 생성
+- code/process_waf.py 다운로드     #분석 자동화 파이썬 파일
+- resource/waf_rule.xlsx 다운로드  #분석 결과 자료 기본 폼
+- upload/WAF쿼리추출.xlsx          #Athena WAF 쿼리 분석 결과  
+5. process_waf.py 실행
+- 탐지 이벤트 집계
+- RuleSet 분류
+- Bedrock Claude 분석
+- Excel 보고서 생성  
+6. 최종 결과 출력 <S3 버킷>/WAF_Report/results/WAF_분석_결과_YYYYMMDD_HHMMSS.xlsx 
+ 
+```bash
+┌─────────────────────────┐
+│  Athena WAF 쿼리 추출    │
+└──────────┬──────────────┘
+           │
+           │ WAF쿼리추출(.xlsx)
+           ▼
+
+s3://bucket-test-jaehwan/WAF_Report/
+│
+├── upload/
+│   └── WAF쿼리추출.xlsx
+│
+├── code/
+│   └── process_waf.py
+│
+├── resource/
+│   └── waf_rule.xlsx
+│
+└── results/
+    └── WAF_분석_결과_YYYYMMDD_HHMMSS.xlsx
+           ▲
+           │
+           │ 결과 저장
+           │
+┌──────────┴──────────────┐
+│   SageMaker Processing   │
+└──────────▲──────────────┘
+           │ CreateProcessingJob
+           │
+┌──────────┴──────────────┐
+│         Lambda          │
+│  (S3 Upload Trigger)    │
+└──────────▲──────────────┘
+           │
+           │ S3 Event
+           │
+┌──────────┴──────────────┐
+│      S3 Upload          │
+│ WAF쿼리추출.xlsx 업로드  │
+└─────────────────────────┘
+```
 
 ## 1. Athena에 WAF 로그 추출
 아테나 쿼리는 아래 형식을 유지합니다.
@@ -36,20 +93,28 @@ WITH base AS (
             'user-agent'
         )[1] AS user_agent
 
-    FROM ons_cjl_ue1 t    #테이블 이름 변경해야 합니다.
+    FROM ons_cjl_ue1 t    #테이블 이름을 변경합니다.
     WHERE from_unixtime(t.timestamp / 1000)
-          BETWEEN TIMESTAMP '2026-06-01 00:00:00' #시작 날짜 및 시간을 지정합니다.
-              AND TIMESTAMP '2026-06-30 00:00:00' #종료 날짜 및 시간을 지정합니다.
+          BETWEEN TIMESTAMP '2026-06-01 00:00:00'
+              AND TIMESTAMP '2026-06-30 00:00:00'
       AND t.action IN ('ALLOW', 'COUNT')
 )
 
 SELECT
     b.kst_time,
-    b.webaclid,
+    regexp_extract(
+        webaclid,
+        '.*/webacl/([^/]+)/.*',
+        1
+    ) AS web_acl_name,
     nmr_item.ruleid AS matched_ruleid,
     md.location,
-    b.httprequest.clientip,
-    b.httprequest.country,
+    concat(
+        b.httprequest.clientip,
+        ' (',
+        b.httprequest.country,
+        ')'
+    ) AS clientip,
     b.httprequest.httpMethod,
     b.host_header,
     b.user_agent,
@@ -66,52 +131,65 @@ LEFT JOIN UNNEST(b.labels) AS lbl(label_item) ON TRUE
 
 WHERE nmr_item.ruleid IS NOT NULL
 
-ORDER BY b.kst_time ASC;
+ORDER BY b.kst_time ASC
 ```
 쿼리 결과를 CSV로 다운로드 하고, 파일은 통합 EXCEL로 저장되어야만 합니다(민감도 제외 필수)
 
-## 2. Notebook 실행 및 파일 업로드
+## 2. 분석파일 업로드
 
-Amazon SageMaker AI > Notebooks > Jupyter 열기 > WAF Report 폴더에 파일을 업로드 합니다.<br>
-루트(/) 디렉터리 이동 > WAF_Report.ipynb 실행 > 파일 경로 수정 후 실행(Cell 선택 후 Shift + Enter)
+<S3 버킷>/WAF_Report/upload/ 폴더에 WAF쿼리결과.xlsx 파일을 업로드 합니다. 파일은 영문으로 작성합니다.
 
+## 3. 출력파일 다운로드
+
+<S3 버킷>/WAF_Report/results/ 폴더에 WAF_분석_결과_YYYYMMDD_HHMMSS.xlsx 파일을 다운로드 합니다.
+
+
+## 참고. 디버깅용
+
+SageMaker Processing Job에 대한 모니터링은 아래 경로에서 확인 가능합니다.<br>
+SageMaker AI > Data preparation: Processing Jobs > 처리작업에서 작업 이름을 선택합니다.<br> 
+모니터링 > 로그 보기 > CloudWatch 로그 스트림을 선택합니다. 완료 예시는 아래와 같습니다.
 ```bash
-import boto3
-import json
-import pandas as pd
-import openpyxl
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
-from concurrent.futures import (
-    ThreadPoolExecutor,
-    as_completed
-)
-
-# ===============================
-# ✅ 경로
-# ===============================
-result = "WAF Report/6월waf_alb.xlsx" #업로드한 파일 경로로 수정합니다.
-rule   = "WAF Report/waf 로그 분석1.xlsx"
-output = "WAF Report/WAF_분석_결과.xlsx"
-
-# ===============================
-# ✅ Boderline 설정
-# ===============================
-THIN = Side(style="thin")
-
-BOX_BORDER = Border(
-    left=THIN,
-    right=THIN,
-    top=THIN,
-    bottom=THIN
-)
-
+2026-07-08T18:02:23.098+09:00
+Downloading openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
+2026-07-08T18:02:23.099+09:00
+Downloading et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
+2026-07-08T18:02:23.099+09:00
+Installing collected packages: et-xmlfile, openpyxl
+2026-07-08T18:02:23.099+09:00
+Successfully installed et-xmlfile-2.0.0 openpyxl-3.1.5
+2026-07-08T18:02:23.099+09:00
+Input File : /opt/ml/processing/input/07_waf_alb.xlsx
+2026-07-08T18:02:23.099+09:00
+Rule File : /opt/ml/processing/resource/waf_rule.xlsx
+2026-07-08T18:02:23.099+09:00
+Output File: /opt/ml/processing/output/WAF_분석_결과_20260708_090221.xlsx
+2026-07-08T18:02:52.108+09:00
+[AI START] CommonRuleSet
+2026-07-08T18:02:52.108+09:00
+[AI START] AdminProtectionRuleSet
+2026-07-08T18:02:52.108+09:00
+[AI START] SQLiRuleSet
+2026-07-08T18:02:52.108+09:00
+[AI START] AmazonIpReputationList
+2026-07-08T18:02:52.108+09:00
+[AI START] AnonymousIpList
+2026-07-08T18:03:07.115+09:00
+[AI COMPLETE] AdminProtectionRuleSet
+2026-07-08T18:03:11.115+09:00
+[AI COMPLETE] SQLiRuleSet
+2026-07-08T18:03:11.116+09:00
+[AI COMPLETE] AmazonIpReputationList
+2026-07-08T18:03:18.117+09:00
+[AI COMPLETE] CommonRuleSet
+2026-07-08T18:03:25.118+09:00
+[AI COMPLETE] AnonymousIpList
+2026-07-08T18:03:45.122+09:00
+완성
 ```
 
-## 4. 출력 파일 다운로드
 
-루트(/) 디렉토리 > WAF Report 폴더에 'WAF_분석 결과'라는 이름으로 생성됩니다. 
-
-## 5. 구성 설정
+## 참고. 구성 설정
 
 Notebook Role에는 다음 권한을 필수적으로 필요로합니다.
 
@@ -144,10 +222,185 @@ Notebook Role에는 다음 권한을 필수적으로 필요로합니다.
     ]
 }
 ```
+Lambda 코드는 다음과 같습니다.
 
-## 참고용. 전체 코드
+```bash
+import boto3
+import uuid
 
-코드는 Notebook 형식으로 작성되었습니다. 기준이 되는 룰 자료가 필요합니다(waf_로그 분석1.xlsx)
+sm = boto3.client("sagemaker")
+
+ROLE_ARN = "<SageMaker AI Role ARN>"
+
+def lambda_handler(event, context):
+
+    for record in event["Records"]:
+
+        bucket = record["s3"]["bucket"]["name"]
+        key = record["s3"]["object"]["key"]
+
+        input_path = f"s3://{bucket}/{key}"
+
+        print(f"Input File : {input_path}")
+
+        job_name = f"waf-analysis-{uuid.uuid4().hex[:8]}"
+
+        response = sm.create_processing_job(
+
+            ProcessingJobName=job_name,
+
+            RoleArn=ROLE_ARN,
+
+            AppSpecification={
+                "ImageUri": (
+                    "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
+                    "sagemaker-scikit-learn:1.4-2-cpu-py3"
+                ),
+                "ContainerEntrypoint": [
+                    "python3",
+                    "/opt/ml/processing/code/process_waf.py"
+                ]
+            },
+
+            ProcessingResources={
+                "ClusterConfig": {
+                    "InstanceCount": 1,
+                    "InstanceType": "ml.t3.medium",
+                    "VolumeSizeInGB": 30
+                }
+            },
+
+            ProcessingInputs=[
+
+                # 업로드된 WAF 보고서
+                {
+                    "InputName": "input",
+                    "S3Input": {
+                        "S3Uri": input_path,
+                        "LocalPath": "/opt/ml/processing/input",
+                        "S3DataType": "S3Prefix",
+                        "S3InputMode": "File"
+                    }
+                },
+
+                # 분석 코드
+                {
+                    "InputName": "code",
+                    "S3Input": {
+                        "S3Uri": (
+                            "<S3 버킷 경로>/"
+                            "WAF_Report/code/"
+                        ),
+                        "LocalPath": "/opt/ml/processing/code",
+                        "S3DataType": "S3Prefix",
+                        "S3InputMode": "File"
+                    }
+                },
+
+                # 정책 파일
+                {
+                    "InputName": "resource",
+                    "S3Input": {
+                        "S3Uri": (
+                            "<S3 버킷 경로>/"
+                            "WAF_Report/resource/"
+                        ),
+                        "LocalPath": "/opt/ml/processing/resource",
+                        "S3DataType": "S3Prefix",
+                        "S3InputMode": "File"
+                    }
+                }
+            ],
+
+            ProcessingOutputConfig={
+                "Outputs": [
+                    {
+                        "OutputName": "result",
+                        "S3Output": {
+                            "S3Uri": (
+                                "<S3 버킷 경로>/"
+                                "WAF_Report/results/"
+                            ),
+                            "LocalPath": "/opt/ml/processing/output",
+                            "S3UploadMode": "EndOfJob"
+                        }
+                    }
+                ]
+            }
+        )
+
+        print(f"Processing Job Started : {job_name}")
+        print(response["ProcessingJobArn"])
+
+    return {
+        "statusCode": 200
+    }
+```
+Lambda Role에는 다음 권한을 필수적으로 필요로합니다.
+
+```bash
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sagemaker:CreateProcessingJob"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:PassRole"
+            ],
+            "Resource": [
+                "<Sage Maker AI Role ARN>"
+            ]
+        }
+    ]
+}
+```
+Lambda 에는 다음과 같은 리소스 권한도 필적입니다. 참고로 해당 과정은 S3 버킷 이벤트 알림 설정에서도 작업 가능합니다.
+
+```bash
+{
+  "Version": "2012-10-17",
+  "Id": "default",
+  "Statement": [
+    {
+      "Sid": "event_permissions_from_bucket_WAF-S3-Trigger",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "s3.amazonaws.com"
+      },
+      "Action": "lambda:InvokeFunction",
+      "Resource": "<Lambda ARN>",
+      "Condition": {
+        "StringEquals": {
+          "AWS:SourceAccount": "747935822721"
+        },
+        "ArnLike": {
+          "AWS:SourceArn": "<S3 버킷 ARN>"
+        }
+      }
+    }
+  ]
+}
+```
+
+## 참고. process_waf.py
+
+해당 파일을 /WAF_Report/code 폴더에 업로드하면 Lambda가 해당 파일을 실행합니다.
 
 ```bash
 import boto3
