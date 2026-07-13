@@ -208,8 +208,9 @@ S3 버킷 > 속성 선택 > 이벤트 알림 추가 (해당 작업 시 대상 La
 }
 ```
 전체 람다 코드입니다.<br>
-s3
-
+1. def build_embedding_text: Chunk 데이터를 Embedding 모델(Titan)에 전달할 텍스트로 변환<br>
+2. validate_chunk: Chunk가 Vector DB(S3)에 저장될 자격이 있는지 검증<br>
+3. def lambda_handler: Chunk 데이터를 Titan Embedding이 이해할 수 있는 텍스트로 변환
 ```bash
 import json
 import uuid
@@ -221,7 +222,7 @@ sm = boto3.client("sagemaker")
 RAG_BUCKET = "rag-bucket-jaehwan"
 
 ROLE_ARN = (
-    "arn:aws:iam::747935822721:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
+    "<자동 생성 Lambda Role ARN 입력>"
 )
 
 
