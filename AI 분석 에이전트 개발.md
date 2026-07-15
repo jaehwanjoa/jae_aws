@@ -1,28 +1,33 @@
 # AI 분석 에이전트 개발 가이드(Cortex)
 
-Notebook, Lambda, Amazon Bedrock을 활용하였습니다. 사용자 입력데이터를 AI가 추론하는 일반적인 AI 챗봇이 아닙니다.<br>
-수집된 보안 이벤트를 기반으로 RAG(Retrieval-Augmented Generation)를 적용하여, 사용자 환경에 특화된 분석 결과를 제공합니다.<br>
-즉, Cortex Cloud 전용 AI 분석 에이전트라고 이해할 수 있습니다. 
+Amazon Bedrock, AWS Lambda, S3를 활용하여 보안 이벤트 분석용 AI 에이전트를 구현하였습니다.<br>
+일반적인 AI 챗봇은 사용자의 질문을 사전 학습된 지식을 기반으로 답변을 생성하지만, Cortex Cloud 실제 보안 이벤트를 기반으로 답변을 생성합니다.<br>
+RAG(Retrieval-Augmented Generation)를 적용하여 사용자의 질문과 관련된 보안 이벤트를 검색하고, 검색 결과를 AI가 분석 및 권고사항을 제공합니다.<br>
 
 ---
+## 아키텍처 특징
+본 시스템은 AWS Knowledge Base 및 OpenSearch를 사용하지 않았으며, S3와 FAISS 벡터 인덱스를 활용한 경력 RAG 구조로 설계하였습니다.
+1. 장점:
+- OpenSearch 미사용으로 비용 절감<br>
+- AWS 서비스 의종성 최소화<br>
+- 벡터 데이터(S3) 단순 관리<br>
+- Embedding, 검색 로직 커스터마이징 가능
+2. 단점:
+- 대규모 데이터(수십만 건 이상) 처리 시 확장성 한계
+- 기간, 계정, 심각도 기반 복합 검색 기능 제한
+- OpenSearch 기반 실시간 검색 대비 유연성 부족
+
 ## 아키텍처 구조
-1. 보안 이벤트 S3 적재: Cortex Cloud -> S3(rag-bucket-jaehwan/CSPM/raw)<br>
-2. RAG 프로세싱: Cortex 보안 로그를 AI 검색 가능한 벡터 DB 형태로 변환하는 단계(rag-lambda-jaehwan)<br>
-- Preprocessing 수행: serverity/asset_name/asset_account 등 주요 필드를 추출<br>
-- Chunk 생성: AI 검색 효율을 위해 이벤트를 검색 단위로 분리<br>
-- Embedding/Vector 생성: SageMaker Processing Job 수행(Titan Embedding과 Vector 동작)<br>
-- Vector Store 생성:  rag-lambda-jaehwan -> S3(rag-bucket-jaehwan/CSPM/vector)<br>
-4. 사용자 인터페이스(UI)<br>
-- S3 정적 웹호스팅: index.html 정적 웹사이트 기반 UI 제공. 사용자는 자연어로 질문을 입력합니다. ex)어제 탐지된 이슈 알려줘<br>
-- 질의 요청: 사용자 -> API Gateway -> rag-chat-api(lambda)<br>
-- 질의 검색: rag-query lambda(질의 내용을 검색하고, 질문을 Tiran Embedding으로 변환)<br>
-- Context 생성: 검색된 Finding과 Metadata를 기반으로 Context 생성<br>
-- AI 분석: EventBridge -> rag-answer(이벤트 자동 트리거, 사전정의 입력 프롬프트 반영 ex)Serverity 운선 순위, 권고 사항 생성 등<br>
-- 결과 저장: S3 -> rag-bucket-jaehwan/CSPM/answer<br>
-- 결과 조회: UI는 API Gateway를 통해 결과를 조회하고 사용자 질의 결과를 출력합니다.
+1. 보안 이벤트 수집: Cortex Cloud에서 탐지된 보안 이벤트를 S3에 적재합니다.
+2. RAG 데이터 생성: 수집 이벤트를 AI가 검색할 수 있는 형태로 변환합니다.
+3. 사용자 질의 입력/출력: 사용자는 웹 브라우저에서 자연어로 질문을 입력받습니다. ex)어제 탐지된 이슈 알려줘
+4. 보안 이벤트 검색(RAG): 사용자 질문을 벡터로 변환하고, FAISS Index에서 유사한 보안 이벤트를 검색합니다.
+5. AI 분석 및 답변 생성: 검색된 Context를 기반으로 Bedrock(Claude)가 분석을 수행합니다.
+6. 결과 조회: 사용자는 웹 UI에서 분석 결과를 확인합니다.
+
 ```bash
 ┌────────────────────────────┐
-│   Cortex Cloud Findings    │
+│  Cortex Cloud 이벤트 발생   │
 └─────────────┬──────────────┘
               │ Raw Event
               ▼
@@ -30,17 +35,13 @@ s3://rag-bucket-jaehwan/CSPM/raw/
 │
 ├── raw/
 │   └── finding.json
-│
 ├── chunk/
 │   └── chunk.json
-│
 ├── vector/
 │   ├── cspm.index
 │   └── metadata.json
-│
 ├── context/
 │   └── context.json
-│
 └── answer/
     └── cspm-rag-query-xxxx.json
               ▲
@@ -65,7 +66,6 @@ s3://rag-bucket-jaehwan/CSPM/raw/
 │ - FAISS Index 생성        │
 │ - Metadata 생성           │
 └─────────────┬──────────────┘
-              │
               ▼
 s3://rag-bucket-jaehwan/CSPM/vector/
 │
@@ -74,7 +74,12 @@ s3://rag-bucket-jaehwan/CSPM/vector/
 ────────────────────────────────────────────
 사용자 질의 프로세스
 ┌────────────────────────────┐
-│ S3 Static Website Hosting  │
+│       사용자 질문 입력      │
+└─────────────┬──────────────┘
+              ▼
+S3 정적 웹호스팅
+┌────────────────────────────┐
+│s3://cortexcopilot-ui/      │
 │ (index.html)               │
 └─────────────┬──────────────┘
               │ 사용자 질문
@@ -82,7 +87,6 @@ s3://rag-bucket-jaehwan/CSPM/vector/
 ┌────────────────────────────┐
 │ API Gateway                │
 └─────────────┬──────────────┘
-              │
               ▼
 ┌────────────────────────────┐
 │ rag-chat-api Lambda        │
@@ -91,7 +95,6 @@ s3://rag-bucket-jaehwan/CSPM/vector/
 │ - Query 등록              │
 │ - Processing Job 생성      │
 └─────────────┬──────────────┘
-              │
               ▼
 ┌────────────────────────────┐
 │ rag-query Lambda           │
@@ -101,9 +104,7 @@ s3://rag-bucket-jaehwan/CSPM/vector/
 │ - Metadata 매핑           │
 │ - Context 생성            │
 └─────────────┬──────────────┘
-              │
               ▼
-
 s3://rag-bucket-jaehwan/CSPM/context/
 │
 └── context.json
@@ -127,11 +128,10 @@ s3://rag-bucket-jaehwan/CSPM/answer/
 └── cspm-rag-query-xxxx.json
               ▲
               │ Polling
-              │
 ┌─────────────┴──────────────┐
 │ rag-answer-api Lambda      │
 ├────────────────────────────┤
-│ - Answer 조회             │
+│ - Answer 조회              │
 │ - Processing 상태 확인     │
 └─────────────┬──────────────┘
               ▼
@@ -140,7 +140,7 @@ s3://rag-bucket-jaehwan/CSPM/answer/
 └─────────────┬──────────────┘
               ▼
 ┌────────────────────────────┐
-│ S3 정적 웹사이트           │
+│ S3 정적 웹사이트            │
 │ Cortex Copilot UI          │
 └────────────────────────────┘
 ```
@@ -158,60 +158,6 @@ S3 버킷 > 속성 선택 > 이벤트 알림 추가 (해당 작업 시 대상 La
 람다 역할은 자동으로 생성합니다. 다만 필요 권한은 아래와 같습니다.<br>
 
 ```bash
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::rag-bucket-jaehwan/CSPM_RAG/raw/*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:PutObject"
-            ],
-            "Resource": [
-                "arn:aws:s3:::rag-bucket-jaehwan/CSPM_RAG/chunk/*"
-            ]
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateProcessingJob"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "iam:PassRole"
-            ],
-            "Resource": [
-                "<자동 생성 Lambda Role ARN 입력>"
-            ]
-        }
-    ]
-}
-```
-전체 람다 코드입니다.<br>
-1. def build_embedding_text: Chunk 데이터를 Embedding 모델(Titan)에 전달할 텍스트로 변환<br>
-2. validate_chunk: Chunk가 Vector DB(S3)에 저장될 자격이 있는지 검증<br>
-3. def lambda_handler: Chunk 데이터를 Titan Embedding이 이해할 수 있는 텍스트로 변환
-```bash
 import json
 import uuid
 import boto3
@@ -222,7 +168,7 @@ sm = boto3.client("sagemaker")
 RAG_BUCKET = "rag-bucket-jaehwan"
 
 ROLE_ARN = (
-    "<자동 생성 Lambda Role ARN 입력>"
+    "arn:aws:iam::747935822721:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
 )
 
 
@@ -745,93 +691,530 @@ def lambda_handler(event, context):
     }
 
 ```
-
-## 2. 분석파일 업로드
-
-<S3 버킷>/WAF_Report/upload/ 폴더에 WAF쿼리결과.xlsx 파일을 업로드 합니다. 파일은 영문으로 작성합니다.
-
-## 3. 출력파일 다운로드
-
-<S3 버킷>/WAF_Report/results/ 폴더에 WAF_분석_결과_YYYYMMDD_HHMMSS.xlsx 파일을 다운로드 합니다.
-
-
-## 참고. 디버깅용
-
-SageMaker Processing Job에 대한 모니터링은 아래 경로에서 확인 가능합니다.<br>
-SageMaker AI > Data preparation: Processing Jobs > 처리작업에서 작업 이름을 선택합니다.<br> 
-모니터링 > 로그 보기 > CloudWatch 로그 스트림을 선택합니다. 완료 예시는 아래와 같습니다.
-```bash
-2026-07-08T18:02:23.098+09:00
-Downloading openpyxl-3.1.5-py2.py3-none-any.whl (250 kB)
-2026-07-08T18:02:23.099+09:00
-Downloading et_xmlfile-2.0.0-py3-none-any.whl (18 kB)
-2026-07-08T18:02:23.099+09:00
-Installing collected packages: et-xmlfile, openpyxl
-2026-07-08T18:02:23.099+09:00
-Successfully installed et-xmlfile-2.0.0 openpyxl-3.1.5
-2026-07-08T18:02:23.099+09:00
-Input File : /opt/ml/processing/input/07_waf_alb.xlsx
-2026-07-08T18:02:23.099+09:00
-Rule File : /opt/ml/processing/resource/waf_rule.xlsx
-2026-07-08T18:02:23.099+09:00
-Output File: /opt/ml/processing/output/WAF_분석_결과_20260708_090221.xlsx
-2026-07-08T18:02:52.108+09:00
-[AI START] CommonRuleSet
-2026-07-08T18:02:52.108+09:00
-[AI START] AdminProtectionRuleSet
-2026-07-08T18:02:52.108+09:00
-[AI START] SQLiRuleSet
-2026-07-08T18:02:52.108+09:00
-[AI START] AmazonIpReputationList
-2026-07-08T18:02:52.108+09:00
-[AI START] AnonymousIpList
-2026-07-08T18:03:07.115+09:00
-[AI COMPLETE] AdminProtectionRuleSet
-2026-07-08T18:03:11.115+09:00
-[AI COMPLETE] SQLiRuleSet
-2026-07-08T18:03:11.116+09:00
-[AI COMPLETE] AmazonIpReputationList
-2026-07-08T18:03:18.117+09:00
-[AI COMPLETE] CommonRuleSet
-2026-07-08T18:03:25.118+09:00
-[AI COMPLETE] AnonymousIpList
-2026-07-08T18:03:45.122+09:00
-완성
-```
-
-
-## 참고. 구성 설정
-
-Notebook Role에는 다음 권한을 필수적으로 필요로합니다.
-
+S3 버킷 권한은 다음과 같습니다.
 ```bash
 {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Sid": "BedrockAccess",
+            "Sid": "PublicReadForWebsite",
             "Effect": "Allow",
-            "Action": [
-                "bedrock:ListFoundationModels",
-                "bedrock:GetFoundationModel",
-                "bedrock:InvokeModel",
-                "bedrock:InvokeModelWithResponseStream",
-                "bedrock:Converse",
-                "bedrock:ConverseStream"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Sid": "MarketplaceSubscription",
-            "Effect": "Allow",
-            "Action": [
-                "aws-marketplace:ViewSubscriptions",
-                "aws-marketplace:Subscribe"
-            ],
-            "Resource": "*"
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::cortexcopilot-ui/*"
         }
     ]
 }
+```
+## 2. S3 정적 웹호스팅 구성
+
+사용자와 대화형식으로 입/출력 UI인터페이스를 제공할 수 있는 S3 정적 웹호스팅 구성
+```bash
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CJL Cortex Copilot</title>
+
+<style>
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 40px;
+}
+
+textarea {
+    width: 800px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.user {
+    background: #e8f0ff;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+.bot {
+    background: #f5f5f5;
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+#chatHistory {
+    width: 800px;
+}
+
+button {
+    padding: 10px 20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>CJL Cortex Copilot</h2>
+
+<textarea
+    id="question"
+    rows="4"
+    placeholder="질문 입력">
+</textarea>
+
+<br><br>
+
+<button onclick="ask()">
+질문하기
+</button>
+
+<hr>
+
+<div id="chatHistory"></div>
+
+<script>
+
+async function ask() {
+
+    const question =
+        document.getElementById(
+            "question"
+        ).value.trim();
+
+    if (!question) {
+
+        alert("질문을 입력하세요.");
+        return;
+    }
+
+    const chatHistory =
+        document.getElementById(
+            "chatHistory"
+        );
+
+    const messageId =
+        "msg_" + Date.now();
+
+    chatHistory.innerHTML += `
+        <div id="${messageId}">
+            <div class="user">
+                <strong>👤 사용자</strong>
+                <pre>${question}</pre>
+            </div>
+
+            <div class="bot">
+                <strong>🤖 Cortex Copilot</strong>
+                <pre>분석 요청 중...</pre>
+            </div>
+        </div>
+    `;
+
+    document.getElementById(
+        "question"
+    ).value = "";
+
+    window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth"
+    });
+
+    try {
+
+        const startResponse =
+            await fetch(
+                "https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                        "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        question: question
+                    })
+                }
+            );
+
+        const startData =
+            await startResponse.json();
+
+        const processingJob =
+            startData.processingJob;
+
+        if (!processingJob) {
+
+            document.getElementById(
+                messageId
+            ).innerHTML = `
+                <div class="user">
+                    <strong>👤 사용자</strong>
+                    <pre>${question}</pre>
+                </div>
+
+                <div class="bot">
+                    <strong>🤖 Cortex Copilot</strong>
+                    <pre>Processing Job 생성 실패</pre>
+                </div>
+            `;
+
+            return;
+        }
+
+        const timer =
+            setInterval(
+                async () => {
+
+                    try {
+
+                        const response =
+                            await fetch(
+                                `https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/answer?processingJob=${processingJob}`
+                            );
+
+                        const data =
+                            await response.json();
+
+                        if (
+                            data.status ===
+                            "Completed"
+                        ) {
+
+                            clearInterval(
+                                timer
+                            );
+
+                            document.getElementById(
+                                messageId
+                            ).innerHTML = `
+                                <div class="user">
+                                    <strong>👤 사용자</strong>
+                                    <pre>${question}</pre>
+                                </div>
+
+                                <div class="bot">
+                                    <strong>🤖 Cortex Copilot</strong>
+                                    <pre>${data.answer}</pre>
+                                </div>
+                            `;
+
+                            window.scrollTo({
+                                top: document.body.scrollHeight,
+                                behavior: "smooth"
+                            });
+                        }
+
+                    } catch (e) {
+
+                        console.error(e);
+                    }
+
+                },
+                5000
+            );
+
+    } catch (error) {
+
+        document.getElementById(
+            messageId
+        ).innerHTML = `
+            <div class="user">
+                <strong>👤 사용자</strong>
+                <pre>${question}</pre>
+            </div>
+
+            <div class="bot">
+                <strong>🤖 Cortex Copilot</strong>
+                <pre>오류 발생 : ${error}</pre>
+            </div>
+        `;
+
+        window.scrollTo({
+            top: document.body.scrollHeight,
+            behavior: "smooth"
+        });
+    }
+}
+
+document.getElementById(
+    "question"
+).addEventListener(
+    "keydown",
+    function(e) {
+
+        if (
+            e.key === "Enter" &&
+            !e.shiftKey
+        ) {
+
+            e.preventDefault();
+            ask();
+        }
+    }
+);
+
+</script>
+
+</body>
+</html>
+
+```
+## 3. 사용자 입/출력 결과 중계기 구성(API Gateway -> Lambda)
+브라우저는 Lambda를 직접 호출이 불가하므로, 이를 중계할 수 있는 API Gateway를 구성했습니다.<br>
+사용자 질의 -> 웹브라우저 -> API Gateway -> Lambda
+```bash
+프로토콜: HTTP(Regional)<br>
+경로:
+ > /: POST 통합 구성, rag-chat-api         #사용자가 질문을 입력하면 호출합니다. ex)POST / Cotent-Type: application.json {"question: 가장 위험한 EC2 취약점 알려줘"}
+ > /answer: GET 통합 구성, rag-answer-api  #브라우저는 GET /answer -> rag-answer-api -> s3/OpenSearch 조회를 통해 답변이 반환됩니다.
+CORS:
+ > Access-Control-Allow-Orgin: http://cortexcopilot-ui.s3-website.ap-northeast-2.amazonaws.com
+ > Access-Control-Allow-Headers: content-type
+ > Access-Control-Allow-Methods: POST, OPTIONS
+ > Access-Control-Max-Age
+
+```
+## 4. 브라우저 요청 수신 및 데이터 검색(rag-chat-api) 
+
+사용자 질의를 추출하고, RAG 검색을 위한 Lambda를 호출합니다<br>
+
+```bash
+import json
+import boto3
+
+lambda_client = boto3.client("lambda")
+
+def lambda_handler(event, context):
+
+    body = json.loads(
+        event.get("body", "{}")
+    )
+
+    question = body.get(
+        "question",
+        ""
+    )
+
+    response = lambda_client.invoke(
+
+        FunctionName=
+        "rag-query-jaehwan",
+
+        InvocationType=
+        "RequestResponse",
+
+        Payload=json.dumps({
+            "question": question
+        })
+    )
+
+    result = json.loads(
+        response["Payload"].read()
+    )
+
+    return {
+        "statusCode": 200,
+        "headers": {
+            "Content-Type":
+            "application/json",
+            "Access-Control-Allow-Origin":
+            "*"
+        },
+        "body": json.dumps(
+            result,
+            ensure_ascii=False
+        )
+    }
+```
+
+
+## 5. RAG 검색을 위한 FAISS 모델 적용
+
+Notebook Role에는 다음 권한을 필수적으로 필요로합니다.
+
+```bash
+import json
+import uuid
+import boto3
+
+s3 = boto3.client("s3")
+sm = boto3.client("sagemaker")
+
+RAG_BUCKET = "rag-bucket-jaehwan"
+
+ROLE_ARN = (
+    "arn:aws:iam::747935822721:role/"
+    "service-role/"
+    "AmazonSageMakerServiceCatalogProductsUseRole"
+)
+
+
+def lambda_handler(event, context):
+
+    question = event.get("question")
+
+    if not question:
+
+        return {
+            "statusCode": 400,
+            "body": "question is required"
+        }
+
+    query_id = str(uuid.uuid4())
+
+    query_key = (
+        f"CSPM_RAG/query/{query_id}.json"
+    )
+
+    s3.put_object(
+        Bucket=RAG_BUCKET,
+        Key=query_key,
+        Body=json.dumps({
+            "query_id": query_id,
+            "question": question
+        }),
+        ContentType="application/json"
+    )
+
+    job_name = (
+        "cspm-rag-query-"
+        f"{uuid.uuid4().hex[:8]}"
+    )
+
+    sm.create_processing_job(
+
+        ProcessingJobName=job_name,
+
+        RoleArn=ROLE_ARN,
+
+        AppSpecification={
+
+            "ImageUri": (
+                "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
+                "sagemaker-scikit-learn:1.4-2-cpu-py3"
+            ),
+
+            "ContainerEntrypoint": [
+
+                "python3",
+                "/opt/ml/processing/code/query_rag.py"
+            ]
+        },
+
+        ProcessingResources={
+
+            "ClusterConfig": {
+
+                "InstanceCount": 1,
+                "InstanceType": "ml.t3.medium",
+                "VolumeSizeInGB": 30
+            }
+        },
+
+        ProcessingInputs=[
+
+            {
+
+                "InputName": "query",
+
+                "S3Input": {
+
+                    "S3Uri":
+                    f"s3://{RAG_BUCKET}/{query_key}",
+
+                    "LocalPath":
+                    "/opt/ml/processing/query",
+
+                    "S3DataType":
+                    "S3Prefix",
+
+                    "S3InputMode":
+                    "File"
+                }
+            },
+
+            {
+
+                "InputName": "vector",
+
+                "S3Input": {
+
+                    "S3Uri":
+                    f"s3://{RAG_BUCKET}/CSPM_RAG/vector/",
+
+                    "LocalPath":
+                    "/opt/ml/processing/vector",
+
+                    "S3DataType":
+                    "S3Prefix",
+
+                    "S3InputMode":
+                    "File"
+                }
+            },
+
+            {
+
+                "InputName": "code",
+
+                "S3Input": {
+
+                    "S3Uri":
+                    f"s3://{RAG_BUCKET}/CSPM_RAG/code/",
+
+                    "LocalPath":
+                    "/opt/ml/processing/code",
+
+                    "S3DataType":
+                    "S3Prefix",
+
+                    "S3InputMode":
+                    "File"
+                }
+            }
+        ],
+
+        ProcessingOutputConfig={
+
+            "Outputs": [
+
+                {
+
+                    "OutputName": "context",
+
+                    "S3Output": {
+
+                        "S3Uri":
+                        f"s3://{RAG_BUCKET}/CSPM_RAG/context/",
+
+                        "LocalPath":
+                        "/opt/ml/processing/output",
+
+                        "S3UploadMode":
+                        "EndOfJob"
+                    }
+                }
+            ]
+        }
+    )
+
+    return {
+
+        "statusCode": 200,
+
+        "queryId":
+        query_id,
+
+        "processingJob":
+        job_name
+    }
 ```
 Lambda 코드는 다음과 같습니다.
 
