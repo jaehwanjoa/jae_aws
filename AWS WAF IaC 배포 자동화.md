@@ -86,10 +86,12 @@ CLI default output format CLI profile name [AWSAdministratorAccess-<AccountID>]:
 아래 내용 수행 시 WAF가 자동 배포됩니다.
 
 ```bash
+SSO 로그아웃(기존 로그인되어 있을 경우): aws sso logout
 SSO 로그인: aws sso login --profile ons-waf
+프로파일 확인: aws sts get-caller-identity --profile ons-waf --output json
 Terraform 시작: terraform init
 Terraform 배포 적용: terraform apply (WAF 적용할 유형별 CloudFront/Regional 폴더로 이동해야 합니다.)  
-
+※만약 적용이 안될 경우 Terraform env 파일내 *.ftstate 파일 삭제(리소스 상태 저장 파일로 기존 정보를 가지고 있을수 있음)
 ```
 
 ## 참고용. envs/cloudfront/prodection.tf 설명
