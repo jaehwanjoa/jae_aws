@@ -227,7 +227,7 @@ terraform {
 # IP Sets
 # ----------------------------------------------------------------------------------------------------------------------
 resource "aws_wafv2_ip_set" "Allow_IPSets_Rule" {
-  name               = "allow_ipset"
+  name               = "ons_allow_ipset"
   description        = "Allowed IPs"
   scope              = var.waf_scope
   ip_address_version = "IPV4"
@@ -235,7 +235,7 @@ resource "aws_wafv2_ip_set" "Allow_IPSets_Rule" {
 }
 
 resource "aws_wafv2_ip_set" "Block_IPSets_Rule" {
-  name               = "block_ipset"
+  name               = "ons_block_ipset"
   description        = "Blocked IPs"
   scope              = var.waf_scope
   ip_address_version = "IPV4"
@@ -243,17 +243,25 @@ resource "aws_wafv2_ip_set" "Block_IPSets_Rule" {
 }
 
 resource "aws_wafv2_ip_set" "host_allow_ips" {
-  name               = "host_allow_ipset"
+  name               = "ons_host_allow_ipset"
   description        = "Host IP Allowlist"
   scope              = var.waf_scope
   ip_address_version = "IPV4"
-  addresses          = ["{허용 IP 입력}"]
+  addresses          = ["203.248.117.82/32", "203.248.117.83/32", "203.248.117.37/32"]
+}
+
+resource "aws_wafv2_ip_set" "ons_block_ipset_ti" {
+  name               = "ons_block_ipset_ti"
+  description        = "ons_block_ipset_ti"
+  scope              = var.waf_scope
+  ip_address_version = "IPV4"
+  addresses          = ["23.82.0.0/16", "207.244.64.0/18", "2.56.122.0/24", "45.32.0.0/16", "91.121.0.0/16", "198.46.242.0/24", "64.120.0.0/17", "108.61.0.0/16", "49.12.0.0/16", "198.23.223.0/24", "23.19.0.0/16", "178.32.0.0/16", "2.56.120.0/23", "107.173.0.0/16", "192.3.0.0/16", "45.63.0.0/16", "107.174.0.0/16", "107.175.0.0/16", "2.56.118.0/23", "2.56.124.0/22"]
 }
 # ----------------------------------------------------------------------------------------------------------------------
 # Regex Pattern Sets
 # ----------------------------------------------------------------------------------------------------------------------
-resource "aws_wafv2_regex_pattern_set" "regex_ip_deny" {
-  name        = "regex_ip_deny"
+resource "aws_wafv2_regex_pattern_set" "ons_regex_ip_deny" {
+  name        = "ons_regex_ip_deny"
   description = "IP Deny Pattern"
   scope       = var.waf_scope
 
@@ -262,8 +270,8 @@ resource "aws_wafv2_regex_pattern_set" "regex_ip_deny" {
   }
 }
 
-resource "aws_wafv2_regex_pattern_set" "regex_user_agent" {
-  name        = "regex_user_agent1"
+resource "aws_wafv2_regex_pattern_set" "ons_regex_user_agent" {
+  name        = "ons_regex_user_agent"
   description = "Blocked User Agents"
   scope       = var.waf_scope
 
@@ -272,8 +280,8 @@ resource "aws_wafv2_regex_pattern_set" "regex_user_agent" {
   }
 }
 
-resource "aws_wafv2_regex_pattern_set" "regex_uri_path" {
-  name        = "regex_uri_path"
+resource "aws_wafv2_regex_pattern_set" "ons_regex_uri_path" {
+  name        = "ons_regex_uri_path"
   description = "Blocked URI Paths"
   scope       = var.waf_scope
 
@@ -294,20 +302,20 @@ resource "aws_wafv2_regex_pattern_set" "regex_uri_path" {
 # ----------------------------------------------------------------------------------------------------------------------
 # Rule Group
 # ----------------------------------------------------------------------------------------------------------------------
-resource "aws_wafv2_rule_group" "custom_rule_group" {
-  name        = "WAF-Custom-RuleGroup"
-  description = "Custom WAF RuleGroup"
+resource "aws_wafv2_rule_group" "ONS_custom_rule_group" {
+  name        = "ONS-WAF-Custom-RuleGroup"
+  description = "Custom WAF RuleGroup for ONS"
   scope       = var.waf_scope
   capacity    = 150
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "WAF-Custom-RuleGroup"
+    metric_name                = "ONS-WAF-Custom-RuleGroup"
     sampled_requests_enabled   = true
   }
 
   rule {
-    name     = "WAF-Host-IP-Allow"
+    name     = "ONS-WAF-Host-IP-Allow"
     priority = 0
     action {
       block {}
@@ -323,13 +331,13 @@ resource "aws_wafv2_rule_group" "custom_rule_group" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "WAF-Host-IP-Allow"
+      metric_name                = "ONS-WAF-Host-IP-Allow"
       sampled_requests_enabled    = true
     }
   }
 
   rule {
-    name     = "URIpath"
+    name     = "ONS-URIpath"
     priority = 1
 
     statement {
@@ -352,12 +360,12 @@ resource "aws_wafv2_rule_group" "custom_rule_group" {
     visibility_config {
       sampled_requests_enabled   = true
       cloudwatch_metrics_enabled = true
-      metric_name                = "URIpath"
+      metric_name                = "ONS-URIpath"
     }
   }
 
   rule {
-    name     = "UserAgent"
+    name     = "ONS-UserAgent"
     priority = 2
 
     statement {
@@ -382,12 +390,12 @@ resource "aws_wafv2_rule_group" "custom_rule_group" {
     visibility_config {
       sampled_requests_enabled   = true
       cloudwatch_metrics_enabled = true
-      metric_name                = "UserAgent"
+      metric_name                = "ONS-UserAgent"
     }
   }
 
   rule {
-    name     = "IPPatternDeny"
+    name     = "ONS-IPPatternDeny"
     priority = 3
 
     statement {
@@ -412,7 +420,7 @@ resource "aws_wafv2_rule_group" "custom_rule_group" {
     visibility_config {
       sampled_requests_enabled   = true
       cloudwatch_metrics_enabled = true
-      metric_name                = "IPPatternDeny"
+      metric_name                = "ONS-IPPatternDeny"
     }
   }
 }
@@ -435,7 +443,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
 
   # Allowed IPs Rule
   rule {
-    name     = "Allow_IPSets_Rule"
+    name     = "ONS-Allow_IPSets_Rule"
     priority = 0
     action {
       allow {}
@@ -447,15 +455,34 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "Allow_IPSets_Rule"
+      metric_name                = "ONS-Allow_IPSets_Rule"
+      sampled_requests_enabled    = true
+    }
+  }
+
+  # Blocked TI IPs Rule
+  rule {
+    name     = "ons_block_ipset_ti"
+    priority = 1
+    action {
+      block {}
+    }
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.ons_block_ipset_ti.arn
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "ons_block_ipset_ti"
       sampled_requests_enabled    = true
     }
   }
 
   # Blocked IPs Rule
   rule {
-    name     = "Block_IPSets_Rule"
-    priority = 1
+    name     = "ONS-Block_IPSets_Rule"
+    priority = 2
     action {
       block {}
     }
@@ -466,15 +493,15 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "Block_IPSets_Rule"
+      metric_name                = "ONS-Block_IPSets_Rule"
       sampled_requests_enabled    = true
     }
   }
 
   # Custom RuleGroup 
   rule {
-    name     = "WAF-Custom-RuleGroup"
-    priority = 2
+    name     = "ONS-WAF-Custom-RuleGroup"
+    priority = 3
     override_action {
       none {}
     }
@@ -485,7 +512,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "WAF-Custom-RuleGroup"
+      metric_name                = "ONS-WAF-Custom-RuleGroup"
       sampled_requests_enabled    = true
     }
   }
@@ -493,7 +520,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # Common Rule Set
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
-    priority = 3
+    priority = 4
     override_action {
       none {}
     }
@@ -647,7 +674,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # Known Bad Inputs Rule Set
   rule {
     name     = "AWS-AWSManagedRulesKnownBadInputsRuleSet"
-    priority = 4
+    priority = 5
     override_action {
       none {}
     }
@@ -741,7 +768,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # AdminProtection Rule Set
   rule {
     name     = "AWS-AWSManagedRulesAdminProtectionRuleSet"
-    priority = 5
+    priority = 6
     override_action {
       none {}
     }
@@ -769,7 +796,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
  # Linux Rule Set
   rule {
     name     = "AWS-AWSManagedRulesLinuxRuleSet"
-    priority = 6
+    priority = 7
     override_action {
       none {}
     }
@@ -809,7 +836,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # Unix Rule Set
   rule {
     name     = "AWS-AWSManagedRulesUnixRuleSet"
-    priority = 7
+    priority = 8
     override_action {
       none {}
     }
@@ -849,7 +876,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # SQL Injection Rule Set
   rule {
     name     = "AWS-AWSManagedRulesSQLiRuleSet"
-    priority = 8
+    priority = 9
     override_action {
       none {}
     }
@@ -901,7 +928,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # AmazonIpReputationList Rule Set
   rule {
     name     = "AWS-AWSManagedRulesAmazonIpReputationList"
-    priority = 9
+    priority = 10
     override_action {
       none {}
     }
@@ -940,7 +967,7 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
   # Anonymous IP List Rule
   rule {
     name     = "AWS-AWSManagedRulesAnonymousIpList"
-    priority = 10
+    priority = 11
     override_action {
       none {}
     }
