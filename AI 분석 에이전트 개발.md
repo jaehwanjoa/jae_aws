@@ -148,6 +148,10 @@ Cloud Cloud 이벤트를 RAG 검색에 사용할 수 있도록 전처리하는 �
 > 분석 결과 조회
 > 분석 결과 출력
 ```
+## 출력 형식
+```mermaid
+
+```
 
 ## 참고용. 코드 설명
 1. Indexer Lambda
@@ -1028,837 +1032,9 @@ def lambda_handler(event, context):
 
 ```
 2. Front Controlle Lambda
-> Amazon Bedrock, S3, EventBridge에 대한 권한 필요<br>
-> S3는 특정 객체에 이벤트가 쌓일 경우 트리거 필요 ex)CSPM_RAG/raw/<br>
+> S3, Lambda 대한 권한 필요<br>
+> API 호출 시 Lambda 트리거 적용 필 ex) "AWS:SourceArn": "arn:aws:execute-api:ap-northeast-2:747935822721:iuvqlc2mn9/*/*/"<br>
 > 아래는 전체 코드 정보입니다.
-```bash
-import json
-import uuid
-import boto3
-
-s3 = boto3.client("s3")
-sm = boto3.client("sagemaker")
-
-RAG_BUCKET = "rag-bucket-jaehwan"
-
-ROLE_ARN = (
-    "arn:aws:iam::747935822721:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
-)
-
-
-def build_embedding_text(chunk):
-
-    if chunk.get("event_type") == "CVE":
-
-        return f"""
-Event Type:
-CVE
-
-CVE:
-{chunk.get('cve_id', '')}
-
-Title:
-{chunk.get('alert_name', '')}
-
-Description:
-{chunk.get('description', '')}
-
-Severity:
-{chunk.get('severity', '')}
-
-CVSS:
-{chunk.get('cvss_score', '')}
-
-Package:
-{chunk.get('package_purl', '')}
-
-Package Version:
-{chunk.get('package_version', '')}
-
-File Path:
-{chunk.get('file_path', '')}
-
-Has Fix:
-{chunk.get('has_fix', '')}
-
-Fix Versions:
-{chunk.get('fix_versions', '')}
-
-Asset:
-{chunk.get('asset_name', '')}
-
-Region:
-{chunk.get('asset_region', '')}
-
-Account:
-{chunk.get('asset_account', '')}
-
-Status:
-{chunk.get('status', '')}
-""".strip()
-
-    return f"""
-Event Type:
-{chunk.get('event_type', 'UNKNOWN')}
-
-Owner:
-{chunk.get('issue_owner', '')}
-
-Control:
-{chunk.get('alert_name', '')}
-
-Description:
-{chunk.get('description', '')}
-
-Severity:
-{chunk.get('severity', '')}
-
-Asset:
-{chunk.get('asset_name', '')}
-
-Region:
-{chunk.get('asset_region', '')}
-
-Account:
-{chunk.get('asset_account', '')}
-
-Status:
-{chunk.get('status', '')}
-""".strip()
-
-def validate_chunk(chunk):
-
-    required_fields = [
-
-        "event_type",
-        "alert_name",
-        "description",
-        "severity",
-        "asset_name"
-
-    ]
-
-    for field in required_fields:
-
-        value = chunk.get(field)
-
-        if value is None:
-            return False
-
-        if isinstance(value, str):
-
-            if not value.strip():
-                return False
-
-    return True
-
-def lambda_handler(event, context):
-
-    bucket = (
-        event["Records"][0]
-        ["s3"]["bucket"]["name"]
-    )
-
-    key = (
-        event["Records"][0]
-        ["s3"]["object"]["key"]
-    )
-
-    print(f"Bucket : {bucket}")
-    print(f"Key : {key}")
-
-    response = s3.get_object(
-        Bucket=bucket,
-        Key=key
-    )
-
-    content = (
-        response["Body"]
-        .read()
-        .decode("utf-8")
-    )
-
-    source_data = json.loads(content)
-
-    if isinstance(source_data, dict):
-        source_data = [source_data]
-
-    chunk_list = []
-
-    for item in source_data:
-
-        body = item.get("body", item)
-
-        try:
-
-            original_alert = body.get(
-                "original_alert_json",
-                {}
-            )
-
-            nested_alert = original_alert.get(
-                "original_alert_json",
-                {}
-            )
-
-            issues = nested_alert.get(
-                "issues",
-                []
-            )
-
-            if not issues:
-
-                print(
-                    f"NO ISSUES : "
-                    f"{body.get('alert_name')}"
-                )
-
-                continue
-
-            issue = issues[0]
-
-            normalized = issue.get(
-                "xdm.issue.normalized_fields",
-                {}
-            )
-
-            asset = {}
-
-            assets = body.get(
-                "assets",
-                []
-            )
-
-            if assets:
-                asset = assets[0]
-
-            cve_id = normalized.get(
-                "xdm.vulnerability.cve_id"
-            )
-
-            issue_owner = issue.get(
-                "xdm.issue.owner"
-            )
-
-            if cve_id:
-
-                event_type = "CVE"
-
-            elif issue_owner == "CSPM":
-
-                event_type = "COMPLIANCE"
-
-            else:
-
-                event_type = "UNKNOWN"
-
-            chunk = {
-
-                "chunk_id":
-                    str(uuid.uuid4()),
-
-                "event_type":
-                    event_type,
-
-                "issue_owner":
-                    issue_owner,
-
-                "cve_id":
-                    cve_id,
-
-                "alert_name":
-                    body.get(
-                        "alert_name"
-                    ),
-
-                "description":
-                    issue.get(
-                        "xdm.issue.description"
-                    ),
-
-                "severity":
-                    issue.get(
-                        "xdm.issue.platform_severity"
-                    ),
-
-                "cvss_score":
-                    normalized.get(
-                        "xdm.vulnerability.cvss_score"
-                    ),
-
-                "package_purl":
-                    normalized.get(
-                        "xdm.software_package.purl"
-                    ),
-
-                "package_version":
-                    normalized.get(
-                        "xdm.software_package.version"
-                    ),
-
-                "file_path":
-                    normalized.get(
-                        "xdm.file.path"
-                    ),
-
-                "has_fix":
-                    normalized.get(
-                        "xdm.vulnerability.has_a_fix"
-                    ),
-
-                "fix_versions":
-                    normalized.get(
-                        "xdm.vulnerability.fix_versions"
-                    ),
-
-                "remediation":
-                    issue.get(
-                        "xdm.issue.remediation"
-                    ),
-
-                "observation_time":
-                    nested_alert.get(
-                        "xdm.issue.observation_time"
-                    ),
-
-                "status":
-                    (
-                        body.get(
-                            "extra_issue_data",
-                            {}
-                        )
-                        .get(
-                            "platform_status.progress"
-                        )
-                    ),
-
-                "asset_name":
-                    asset.get(
-                        "asset_name"
-                    ),
-
-                "asset_region":
-                    asset.get(
-                        "asset_region"
-                    ),
-
-                "asset_account":
-                    asset.get(
-                        "asset_account"
-                    ),
-
-                "asset_tags":
-                    asset.get(
-                        "asset_tags"
-                    )
-            }
-
-            if not validate_chunk(chunk):
-
-                print(
-                    f"INVALID CHUNK : "
-                    f"{chunk.get('alert_name')}"
-                )
-
-                continue
-
-            chunk["embedding_text"] = (
-                build_embedding_text(
-                    chunk
-                )
-            )
-
-            chunk_list.append(
-                chunk
-            )
-
-            print(
-                f"CHUNK CREATED : "
-                f"{chunk['event_type']} | "
-                f"{chunk['severity']} | "
-                f"{chunk['asset_name']}"
-            ) 
-
-        except Exception as e:
-
-            print(
-                f"Parse Error : {str(e)}"
-            )
-
-    output_key = (
-        "CSPM_RAG/chunk/"
-        f"{uuid.uuid4()}.json"
-    )
-
-    s3.put_object(
-        Bucket=RAG_BUCKET,
-        Key=output_key,
-        Body=json.dumps(
-            chunk_list,
-            ensure_ascii=False,
-            indent=2
-        ),
-        ContentType="application/json"
-    )
-
-    cve_count = len([
-        c for c in chunk_list
-        if c.get("event_type") == "CVE"
-    ])
-
-    compliance_count = len([
-        c for c in chunk_list
-        if c.get("event_type") == "COMPLIANCE"
-    ])
-
-    unknown_count = len([
-        c for c in chunk_list
-        if c.get("event_type") == "UNKNOWN"
-    ])
-
-    print(
-        f"""
-    ===================
-    Chunk Summary
-    ===================
-    TOTAL      : {len(chunk_list)}
-    CVE        : {cve_count}
-    COMPLIANCE : {compliance_count}
-    UNKNOWN    : {unknown_count}
-    ===================
-    """
-    )
-
-    print(
-        f"Chunk Created : "
-        f"s3://{RAG_BUCKET}/{output_key}"
-    )
-
-    job_name = (
-        "cspm-rag-vector-"
-        f"{uuid.uuid4().hex[:8]}"
-    )
-
-    try:
-
-        response = sm.create_processing_job(
-
-            ProcessingJobName=job_name,
-
-            RoleArn=ROLE_ARN,
-
-            AppSpecification={
-
-                "ImageUri": (
-                    "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
-                    "sagemaker-scikit-learn:1.4-2-cpu-py3"
-                ),
-
-                "ContainerEntrypoint": [
-
-                    "python3",
-
-                    "/opt/ml/processing/code/build_vector.py"
-                ]
-            },
-
-            ProcessingResources={
-
-                "ClusterConfig": {
-
-                    "InstanceCount": 1,
-
-                    "InstanceType":
-                    "ml.t3.medium",
-
-                    "VolumeSizeInGB": 30
-                }
-            },
-
-            ProcessingInputs=[
-
-                {
-                    "InputName": "chunk",
-
-                    "S3Input": {
-
-                        "S3Uri":
-                        f"s3://{RAG_BUCKET}/{output_key}",
-
-                        "LocalPath":
-                        "/opt/ml/processing/input",
-
-                        "S3DataType":
-                        "S3Prefix",
-
-                        "S3InputMode":
-                        "File"
-                    }
-                },
-
-                {
-                    "InputName": "code",
-
-                    "S3Input": {
-
-                        "S3Uri":
-                        f"s3://{RAG_BUCKET}/CSPM_RAG/code/",
-
-                        "LocalPath":
-                        "/opt/ml/processing/code",
-
-                        "S3DataType":
-                        "S3Prefix",
-
-                        "S3InputMode":
-                        "File"
-                    }
-                }
-            ],
-
-            ProcessingOutputConfig={
-
-                "Outputs": [
-
-                    {
-
-                        "OutputName":
-                        "vector",
-
-                        "S3Output": {
-
-                            "S3Uri":
-                            f"s3://{RAG_BUCKET}/CSPM_RAG/vector/",
-
-                            "LocalPath":
-                            "/opt/ml/processing/output",
-
-                            "S3UploadMode":
-                            "EndOfJob"
-                        }
-                    }
-                ]
-            }
-        )
-
-        print(
-            f"Processing Job Started : "
-            f"{job_name}"
-        )
-
-        print(
-            response["ProcessingJobArn"]
-        )
-
-    except Exception as e:
-
-        print(
-            f"Processing Job Error : {str(e)}"
-        )
-
-        raise
-
-    return {
-        "statusCode": 200,
-        "chunkCount": len(chunk_list),
-        "processingJob": job_name
-    }
-
-```
-S3 버킷 권한은 다음과 같습니다.
-```bash
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "PublicReadForWebsite",
-            "Effect": "Allow",
-            "Principal": "*",
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::cortexcopilot-ui/*"
-        }
-    ]
-}
-```
-## 2. S3 정적 웹호스팅 구성
-
-사용자와 대화형식으로 입/출력 UI인터페이스를 제공할 수 있는 S3 정적 웹호스팅 구성
-```bash
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>CJL Cortex Copilot</title>
-
-<style>
-
-body {
-    font-family: Arial, sans-serif;
-    margin: 40px;
-}
-
-textarea {
-    width: 800px;
-}
-
-pre {
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
-.user {
-    background: #e8f0ff;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-}
-
-.bot {
-    background: #f5f5f5;
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 20px;
-}
-
-#chatHistory {
-    width: 800px;
-}
-
-button {
-    padding: 10px 20px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<h2>CJL Cortex Copilot</h2>
-
-<textarea
-    id="question"
-    rows="4"
-    placeholder="질문 입력">
-</textarea>
-
-<br><br>
-
-<button onclick="ask()">
-질문하기
-</button>
-
-<hr>
-
-<div id="chatHistory"></div>
-
-<script>
-
-async function ask() {
-
-    const question =
-        document.getElementById(
-            "question"
-        ).value.trim();
-
-    if (!question) {
-
-        alert("질문을 입력하세요.");
-        return;
-    }
-
-    const chatHistory =
-        document.getElementById(
-            "chatHistory"
-        );
-
-    const messageId =
-        "msg_" + Date.now();
-
-    chatHistory.innerHTML += `
-        <div id="${messageId}">
-            <div class="user">
-                <strong>👤 사용자</strong>
-                <pre>${question}</pre>
-            </div>
-
-            <div class="bot">
-                <strong>🤖 Cortex Copilot</strong>
-                <pre>분석 요청 중...</pre>
-            </div>
-        </div>
-    `;
-
-    document.getElementById(
-        "question"
-    ).value = "";
-
-    window.scrollTo({
-        top: document.body.scrollHeight,
-        behavior: "smooth"
-    });
-
-    try {
-
-        const startResponse =
-            await fetch(
-                "https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/",
-                {
-                    method: "POST",
-
-                    headers: {
-                        "Content-Type":
-                        "application/json"
-                    },
-
-                    body: JSON.stringify({
-                        question: question
-                    })
-                }
-            );
-
-        const startData =
-            await startResponse.json();
-
-        const processingJob =
-            startData.processingJob;
-
-        if (!processingJob) {
-
-            document.getElementById(
-                messageId
-            ).innerHTML = `
-                <div class="user">
-                    <strong>👤 사용자</strong>
-                    <pre>${question}</pre>
-                </div>
-
-                <div class="bot">
-                    <strong>🤖 Cortex Copilot</strong>
-                    <pre>Processing Job 생성 실패</pre>
-                </div>
-            `;
-
-            return;
-        }
-
-        const timer =
-            setInterval(
-                async () => {
-
-                    try {
-
-                        const response =
-                            await fetch(
-                                `https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/answer?processingJob=${processingJob}`
-                            );
-
-                        const data =
-                            await response.json();
-
-                        if (
-                            data.status ===
-                            "Completed"
-                        ) {
-
-                            clearInterval(
-                                timer
-                            );
-
-                            document.getElementById(
-                                messageId
-                            ).innerHTML = `
-                                <div class="user">
-                                    <strong>👤 사용자</strong>
-                                    <pre>${question}</pre>
-                                </div>
-
-                                <div class="bot">
-                                    <strong>🤖 Cortex Copilot</strong>
-                                    <pre>${data.answer}</pre>
-                                </div>
-                            `;
-
-                            window.scrollTo({
-                                top: document.body.scrollHeight,
-                                behavior: "smooth"
-                            });
-                        }
-
-                    } catch (e) {
-
-                        console.error(e);
-                    }
-
-                },
-                5000
-            );
-
-    } catch (error) {
-
-        document.getElementById(
-            messageId
-        ).innerHTML = `
-            <div class="user">
-                <strong>👤 사용자</strong>
-                <pre>${question}</pre>
-            </div>
-
-            <div class="bot">
-                <strong>🤖 Cortex Copilot</strong>
-                <pre>오류 발생 : ${error}</pre>
-            </div>
-        `;
-
-        window.scrollTo({
-            top: document.body.scrollHeight,
-            behavior: "smooth"
-        });
-    }
-}
-
-document.getElementById(
-    "question"
-).addEventListener(
-    "keydown",
-    function(e) {
-
-        if (
-            e.key === "Enter" &&
-            !e.shiftKey
-        ) {
-
-            e.preventDefault();
-            ask();
-        }
-    }
-);
-
-</script>
-
-</body>
-</html>
-
-```
-## 3. 사용자 입/출력 결과 중계기 구성(API Gateway -> Lambda)
-브라우저는 Lambda를 직접 호출이 불가하므로, 이를 중계할 수 있는 API Gateway를 구성했습니다.<br>
-사용자 질의 -> 웹브라우저 -> API Gateway -> Lambda
-```bash
-프로토콜: HTTP(Regional)<br>
-경로:
- > /: POST 통합 구성, rag-chat-api         #사용자가 질문을 입력하면 호출합니다. ex)POST / Cotent-Type: application.json {"question: 가장 위험한 EC2 취약점 알려줘"}
- > /answer: GET 통합 구성, rag-answer-api  #브라우저는 GET /answer -> rag-answer-api -> s3/OpenSearch 조회를 통해 답변이 반환됩니다.
-CORS:
- > Access-Control-Allow-Orgin: http://cortexcopilot-ui.s3-website.ap-northeast-2.amazonaws.com
- > Access-Control-Allow-Headers: content-type
- > Access-Control-Allow-Methods: POST, OPTIONS
- > Access-Control-Max-Age
-
-```
-## 4. 브라우저 요청 수신 및 데이터 검색(rag-chat-api) 
-
-사용자 질의를 추출하고, RAG 검색을 위한 Lambda를 호출합니다<br>
-
 ```bash
 import json
 import boto3
@@ -1907,176 +1083,1298 @@ def lambda_handler(event, context):
         )
     }
 ```
-
-
-## 5. RAG 검색을 위한 FAISS 모델 적용
-
-Notebook Role에는 다음 권한을 필수적으로 필요로합니다.
-
+3.Search Engin(rag-query-jaehwan) Lambda
+> S3, EventBridge, Bedrock 대한 권한 필요<br>
+> API 호출 시 Lambda 트리거 적용 필요<br>
+> 아래는 전체 코드 정보입니다.
 ```bash
 import json
 import uuid
 import boto3
+import faiss
+import numpy as np
+from collections import Counter
+from botocore.exceptions import ClientError
+from datetime import datetime, timezone, timedelta
 
 s3 = boto3.client("s3")
-sm = boto3.client("sagemaker")
+
+events = boto3.client("events")
+
+bedrock = boto3.client(
+    "bedrock-runtime",
+    region_name="ap-northeast-2"
+)
 
 RAG_BUCKET = "rag-bucket-jaehwan"
 
-ROLE_ARN = (
-    "arn:aws:iam::747935822721:role/"
-    "service-role/"
-    "AmazonSageMakerServiceCatalogProductsUseRole"
-)
+INDEX_KEY = "CSPM_RAG/vector/cspm.index"
+METADATA_KEY = "CSPM_RAG/vector/metadata.json"
+
+def load_conversation_history(
+    conversation_id
+):
+
+    key = (
+        f"CSPM_RAG/conversation/"
+        f"{conversation_id}.json"
+    )
+
+    try:
+
+        response = s3.get_object(
+
+            Bucket=RAG_BUCKET,
+
+            Key=key
+        )
+
+        content = json.loads(
+
+            response["Body"]
+            .read()
+        )
+
+        return content.get(
+            "history",
+            []
+        )
+
+    except ClientError:
+
+        return []
+
+#이전 대화 기억
+def save_conversation_history(
+    conversation_id,
+    history
+):
+
+    key = (
+        f"CSPM_RAG/conversation/"
+        f"{conversation_id}.json"
+    )
+
+    body = {
+
+        "conversationId":
+        conversation_id,
+
+        "history":
+        history[-10:]
+    }
+
+    s3.put_object(
+
+        Bucket=RAG_BUCKET,
+
+        Key=key,
+
+        Body=json.dumps(
+            body,
+            ensure_ascii=False
+        ),
+
+        ContentType=
+        "application/json"
+    )
+
+def detect_time_filter(question):
+
+    q = question.lower()
+
+    if "가장 최근" in q:
+        return "LATEST"
+
+    if "최신" in q:
+        return "LATEST"
+
+    if "최근" in q:
+        return "RECENT"
+
+    if "어제" in q:
+        return "YESTERDAY"
+
+    if "오늘" in q:
+        return "TODAY"
+
+    return None
+
+#삭제 예정(기존 메타데이터 분석용으로 임시)
+def normalize_event_type(event_type):
+
+    mapping = {
+
+        # Legacy
+        "COMPLIANCE": "POSTURE",
+        "CVE": "VULNERABILITY",
+
+        # Current
+        "POSTURE": "POSTURE",
+        "VULNERABILITY": "VULNERABILITY",
+        "COMPUTE": "COMPUTE",
+        "CORRELATION": "CORRELATION"
+    }
+
+    return mapping.get(
+        event_type,
+        event_type
+    )
+
+def apply_time_filter(
+    results,
+    time_filter
+):
+
+    results = sort_findings(
+        results
+    )
+
+    now = datetime.now(
+        timezone.utc
+    )
+
+    if not time_filter:
+        return results
+
+    if time_filter == "LATEST":
+        return results[:10]
+
+    if time_filter == "RECENT":
+        return results[:20]
+
+    if time_filter == "TODAY":
+
+        today = now.date()
+
+        filtered = []
+
+        for r in results:
+
+            observed_at = r.get(
+                "observed_at"
+            )
+
+            if not observed_at:
+                continue
+
+            try:
+
+                observed_date = (
+                    datetime.strptime(
+                        observed_at,
+                        "%Y-%m-%d %H:%M:%S UTC"
+                    ).date()
+                )
+
+                if observed_date == today:
+                    filtered.append(r)
+
+            except Exception:
+                continue
+
+        return filtered
+
+    if time_filter == "YESTERDAY":
+
+        yesterday = (
+            now - timedelta(days=1)
+        ).date()
+
+        filtered = []
+
+        for r in results:
+
+            observed_at = r.get(
+                "observed_at"
+            )
+
+            if not observed_at:
+                continue
+
+            try:
+
+                observed_date = (
+                    datetime.strptime(
+                        observed_at,
+                        "%Y-%m-%d %H:%M:%S UTC"
+                    ).date()
+                )
+
+                if observed_date == yesterday:
+                    filtered.append(r)
+
+            except Exception:
+                continue
+
+        return filtered
+
+    return results
+
+def get_correlation_results(metadata):
+
+    accounts = {}
+
+    for item in metadata.values():
+
+        account = item.get(
+            "asset_account"
+        )
+
+        if not account:
+            continue
+
+        if account not in accounts:
+
+            accounts[account] = {
+
+                "asset_account":
+                account,
+
+                "cspm_controls":
+                set(),
+
+                "cves":
+                
+                set()
+            }
+        if normalize_event_type(
+            item.get("event_type")
+        ) == "POSTURE":
+
+            accounts[account][
+                "cspm_controls"
+            ].add(
+
+                item.get(
+                    "alert_name"
+                )
+            )
+
+        elif normalize_event_type(
+            item.get("event_type")
+        ) == "VULNERABILITY":
+
+            cve_id = item.get(
+                "cve_id"
+            )
+
+            if cve_id:
+
+                accounts[account][
+                    "cves"
+                ].add(
+                    cve_id
+                )
+
+    result = []
+
+    for account_data in accounts.values():
+
+        if (
+            account_data[
+                "cspm_controls"
+            ]
+            and
+            account_data[
+                "cves"
+            ]
+        ):
+
+            result.append({
+
+                "asset_account":
+                account_data[
+                    "asset_account"
+                ],
+
+                "cspm_count":
+                len(
+                    account_data[
+                        "cspm_controls"
+                    ]
+                ),
+
+                "cve_count":
+                len(
+                    account_data[
+                        "cves"
+                    ]
+                ),
+
+                "cspm_controls":
+                list(
+                    account_data[
+                        "cspm_controls"
+                    ]
+                )[:10],
+
+                "cves":
+                list(
+                    account_data[
+                        "cves"
+                    ]
+                )[:10]
+            })
+
+    return result
+
+def get_embedding(text):
+
+    response = bedrock.invoke_model(
+        modelId="amazon.titan-embed-text-v2:0",
+        body=json.dumps({
+            "inputText": text
+        })
+    )
+
+    body = json.loads(
+        response["body"].read()
+    )
+
+    return np.array(
+        body["embedding"],
+        dtype="float32"
+    )
 
 
-def lambda_handler(event, context):
+def load_index():
 
-    question = event.get("question")
+    local_index = "/tmp/cspm.index"
+
+    s3.download_file(
+        RAG_BUCKET,
+        INDEX_KEY,
+        local_index
+    )
+
+    return faiss.read_index(
+        local_index
+    )
+
+
+def load_metadata():
+
+    response = s3.get_object(
+        Bucket=RAG_BUCKET,
+        Key=METADATA_KEY
+    )
+
+    return json.loads(
+        response["Body"].read()
+    )
+
+def detect_category(question):
+
+    q = question.lower()
+
+    # POSTURE + VULNERABILITY 동시 분석
+    if (
+        (
+            "cspm" in q
+            or "compliance" in q
+            or "규정" in q
+            or "준수" in q
+        )
+        and
+        (
+            "취약점" in q
+            or "cve" in q
+            or "vulnerability" in q
+        )
+    ):
+        return "CORRELATION"
+
+    # Account Correlation
+    if (
+        "두개 이슈" in q
+        or "둘 다 가진" in q
+        or "동시에 가진" in q
+        or "모두 가진 계정" in q
+        or "공통 계정" in q
+        or "동시에 발생한 계정" in q
+    ):
+        return "ACCOUNT_CORRELATION"
+
+
+    # POSTURE
+    if (
+        "cspm" in q
+        or "compliance" in q
+        or "규정" in q
+        or "준수" in q
+        or "정책 위반" in q
+        or "보안그룹" in q
+        or "security group" in q
+        or "sg" in q
+        or "s3" in q
+        or "mfa" in q
+        or "iam" in q
+        or "cloudtrail" in q
+    ):
+        return "POSTURE"
+
+    # VULNERABILITY
+    if (
+        "cve" in q
+        or "취약점" in q
+        or "vulnerability" in q
+        or "cvss" in q
+        or "fix version" in q
+        or "패치" in q
+    ):
+        return "VULNERABILITY"
+
+    # COMPUTE
+    if (
+        "malware" in q
+        or "멀웨어" in q
+        or "악성코드" in q
+        or "랜섬웨어" in q
+        or "trojan" in q
+        or "virus" in q
+        or "runtime" in q
+        or "defender" in q
+    ):
+        return "COMPUTE"
+
+    # CORRELATION 이벤트
+    if (
+        "correlation" in q
+        or "activity" in q
+        or "생성 이벤트" in q
+        or "변경 이벤트" in q
+        or "삭제 이벤트" in q
+        or "correlation" in q
+        or "xsiam" in q
+    ):
+        return "CORRELATION"
+
+    return "ALL"
+
+def add_observed_at(item):
+
+    observation_time = item.get(
+        "observation_time"
+    )
+
+    if observation_time:
+
+        item["observed_at"] = (
+
+            datetime.fromtimestamp(
+
+                int(observation_time) / 1000,
+
+                timezone.utc
+
+            ).strftime(
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
+        )
+
+    return item
+
+def sort_findings(results):
+
+    severity_weight = {
+
+        "CRITICAL": 4,
+        "HIGH": 3,
+        "MEDIUM": 2,
+        "LOW": 1
+    }
+
+    results.sort(
+        key=lambda x: (
+            severity_weight.get(
+                x.get("severity"),
+                0
+            ),
+            x.get("similarity_score") or 0,
+            int(
+                x.get("observation_time")
+                or 0
+            )
+        ),
+        reverse=True
+    )
+
+    return results
+
+def build_context(
+        metadata,
+        indices,
+        distances
+):
+
+    findings = []
+
+    for idx, dist in zip(
+        indices,
+        distances
+    ):
+
+        idx = str(int(idx))
+
+        item = metadata.get(idx)
+
+        if not item:
+            continue
+
+        item = add_observed_at(
+            item.copy()
+        )
+
+        item["event_type"] = normalize_event_type(
+            item.get("event_type")
+        )
+
+        item.pop(
+            "embedding_text",
+            None
+        )
+
+        item.pop(
+            "asset_tags",
+            None
+        )
+
+        item.pop(
+            "vector",
+            None
+        )
+
+        item["similarity_score"] = round(
+            max(
+                0,
+                1 - (
+                    float(dist) / 2
+                )
+            ),
+            3
+        )
+
+        item["distance"] = round(
+            float(dist),
+            4
+        )
+
+        findings.append(
+            item
+        )
+
+    return sort_findings(
+        findings
+    )
+
+def find_related_findings(
+        metadata,
+        primary_results
+):
+
+    print(
+        f"PRIMARY RESULTS: "
+        f"{len(primary_results)}"
+    )
+
+    related = []
+
+    seen = set()
+
+    result_chunk_ids = {
+
+        r.get("chunk_id")
+
+        for r in primary_results
+    }
+
+    for finding in primary_results:
+
+        asset_key = finding.get(
+            "asset_key"
+        )
+
+        observation_time = int(
+            finding.get(
+                "observation_time",
+                0
+            ) or 0
+        )
+
+        if not asset_key:
+            continue
+
+        for item in metadata.values():
+
+            if (
+                item.get(
+                    "asset_key"
+                )
+                != asset_key
+            ):
+                continue
+
+            item_time = int(
+                item.get(
+                    "observation_time",
+                    0
+                ) or 0
+            )
+
+            if (
+                item.get("chunk_id")
+                ==
+                finding.get("chunk_id")
+            ):
+                continue
+
+            if (
+                item.get("chunk_id")
+                in
+                result_chunk_ids
+            ):
+                continue
+
+            if (
+                observation_time
+                and
+                item_time
+            ):
+
+                time_diff = abs(
+                    observation_time
+                    -
+                    item_time
+                )
+
+                if time_diff > 604800000:
+                    continue
+
+            chunk_id = item.get(
+                "chunk_id"
+            )
+
+            if chunk_id in seen:
+                continue
+
+            seen.add(
+                chunk_id
+            )
+
+            related_item = add_observed_at(
+                item.copy()
+            )
+
+            related_item["event_type"] = (
+                normalize_event_type(
+                    related_item.get("event_type")
+                )
+            )
+
+            related_item.pop(
+                "embedding_text",
+                None
+            )
+
+            related_item.pop(
+                "asset_tags",
+                None
+            )
+
+            related_item.pop(
+                "vector",
+                None
+            )
+
+            related.append(
+                related_item
+            )
+
+    return sort_findings(
+        related
+    )
+
+def get_compliance_results(metadata):
+
+    results = []
+
+    for item in metadata.values():
+
+        if (
+            normalize_event_type(
+                item.get("event_type")
+            ) == "POSTURE"
+            or
+            item.get("issue_owner") == "CSPM"
+        ):
+
+            temp = add_observed_at(
+                item.copy()
+            )
+
+            temp["event_type"] = (
+                normalize_event_type(
+                    temp.get("event_type")
+                )
+            )
+
+            results.append(temp)
+
+    results = sort_findings(
+        results
+    )
+
+    return results[:100]
+
+def filter_by_category(
+        results,
+        category
+):
+
+    if category == "ALL":
+        return results
+
+    return [
+
+        r
+
+        for r in results
+
+        if normalize_event_type(
+            r.get("event_type")
+        ) == category
+    ]
+
+def perform_faiss_search(
+    question,
+    metadata
+):
+
+    query_vector = get_embedding(
+        question
+    )
+
+    index = load_index()
+
+    distances, indices = index.search(
+
+        np.array(
+            [query_vector],
+            dtype="float32"
+        ),
+
+        50
+    )
+
+    print(
+        f"MIN DISTANCE: {min(distances[0])}"
+    )
+
+    print(
+        f"MAX DISTANCE: {max(distances[0])}"
+    )
+
+    MAX_DISTANCE = 1.40
+
+    filtered_indices = []
+
+    filtered_distances = []
+
+    for idx, dist in zip(
+        indices[0],
+        distances[0]
+    ):
+
+        if dist <= MAX_DISTANCE:
+
+            filtered_indices.append(
+                idx
+            )
+
+            filtered_distances.append(
+                dist
+            )
+
+    print(
+        f"AFTER DISTANCE FILTER: "
+        f"{len(filtered_indices)}"
+    )
+
+    return build_context(
+        metadata,
+        filtered_indices,
+        filtered_distances
+    )
+
+def aggregate_findings(results):
+
+    grouped = {}
+
+    for item in results:
+
+        key = (
+            item.get("alert_name"),
+            item.get("severity")
+        )
+
+        if key not in grouped:
+
+            grouped[key] = {
+
+                "alert_name":
+                item.get("alert_name"),
+
+                "severity":
+                item.get("severity"),
+
+                "count":
+                0,
+
+                "assets":
+                set()
+            }
+
+        grouped[key]["count"] += 1
+
+        if item.get("asset_name"):
+
+            grouped[key]["assets"].add(
+                item.get("asset_name")
+            )
+
+    aggregated = []
+
+    for value in grouped.values():
+
+        value["assets"] = list(
+            value["assets"]
+        )
+
+        aggregated.append(
+            value
+        )
+
+    aggregated.sort(
+
+        key=lambda x: x["count"],
+
+        reverse=True
+    )
+
+    return aggregated
+
+def lambda_handler(
+        event,
+        context
+):
+
+    question = event.get(
+        "question"
+    )
+
+    conversation_id = event.get(
+        "conversationId"
+    )
+
+    history = []
+
+    previous_question = None
+
+    if conversation_id:
+
+        history = (
+            load_conversation_history(
+                conversation_id
+            )
+        )
+
+        if history:
+
+            previous_question = (
+                history[-1]
+                .get("question")
+            )
+
+    print(
+        f"PREVIOUS QUESTION: "
+        f"{previous_question}"
+    )
 
     if not question:
 
         return {
+
             "statusCode": 400,
-            "body": "question is required"
+
+            "body":
+            "question is required"
         }
 
-    query_id = str(uuid.uuid4())
-
-    query_key = (
-        f"CSPM_RAG/query/{query_id}.json"
+    print(
+        f"QUESTION: {question}"
     )
+
+    category = detect_category(
+        question
+    )
+
+    metadata = load_metadata()
+
+    aggregated_findings = []
+
+    time_filter = detect_time_filter(
+        question
+    )
+
+    semantic_search = (
+        category == "ALL"
+        and
+        not time_filter
+    )
+
+    # CORRELATION
+    if category == "CORRELATION":
+
+        print(
+            "MODE: CORRELATION"
+        )
+
+        results = get_correlation_results(
+            metadata
+        )
+
+        related_findings = []
+
+        aggregated_findings = []
+
+    elif category == "ACCOUNT_CORRELATION":
+
+        print(
+            "MODE: ACCOUNT_CORRELATION"
+        )
+
+        results = get_correlation_results(
+            metadata
+        )
+
+        related_findings = []
+
+        aggregated_findings = []
+    
+    # FAISS 의미검색
+    #
+    elif semantic_search:
+
+        print(
+            "MODE: FAISS SEARCH"
+        )
+
+        results = perform_faiss_search(
+            question,
+            metadata
+        )
+
+        related_findings = (
+            find_related_findings(
+                metadata,
+                results[:10]
+            )
+        )
+
+        aggregated_findings = (
+            aggregate_findings(
+                results
+            )
+        )
+
+    #
+    # 메타데이터 검색
+    else:
+
+        print(
+            "MODE: METADATA SEARCH"
+        )
+
+        results = []
+
+        for item in metadata.values():
+
+            temp = add_observed_at(
+                item.copy()
+            )
+
+            temp["event_type"] = (
+                normalize_event_type(
+                    temp.get("event_type")
+                )
+            )
+
+            results.append(
+                temp
+            )
+
+        #
+        # 카테고리 먼저
+        #
+        results = filter_by_category(
+            results,
+            category
+        )
+
+        print(
+            f"CATEGORY FILTER: {category}"
+        )
+
+        print(
+            f"AFTER CATEGORY FILTER: {len(results)}"
+        )
+
+        #
+        # 시간 나중
+        #
+        results = apply_time_filter(
+            results,
+            time_filter
+        )
+
+        print(
+            f"AFTER TIME FILTER: {len(results)}"
+        )
+
+        results = sort_findings(
+            results
+        )
+
+        related_findings = (
+            find_related_findings(
+                metadata,
+                results[:20]
+            )
+        )
+
+        aggregated_findings = (
+            aggregate_findings(
+                results
+            )
+        )
+
+    compliance_count = sum(
+
+        1
+
+        for item in metadata.values()
+
+        if (
+            normalize_event_type(
+                item.get("event_type")
+            ) == "POSTURE"
+        )
+    )
+
+    print(
+        f"TOTAL COMPLIANCE: "
+        f"{compliance_count}"
+    )
+
+    compute_count = sum(
+
+        1
+
+        for item in metadata.values()
+
+        if normalize_event_type(
+            item.get("event_type")
+        ) == "COMPUTE"
+    )
+
+    print(
+        f"TOTAL COMPUTE: {compute_count}"
+    )
+
+    print(
+        f"CATEGORY: {category}"
+    )
+
+    print(
+        f"FILTERED RESULTS: "
+        f"{len(results)}"
+    )
+
+    print(
+        f"RELATED FINDINGS: "
+        f"{len(related_findings)}"
+    )
+
+    print(
+        "=== FILTERED SEARCH RESULTS ==="
+    )
+
+    event_counts = Counter(
+
+        normalize_event_type(
+
+            item.get(
+                "event_type",
+                "UNKNOWN"
+            )
+
+        )
+
+        for item in results
+    )
+
+    print(
+        "EVENT COUNTS:",
+        json.dumps(
+            dict(event_counts),
+            ensure_ascii=False
+        )
+)
+
+
+    query_id = str(
+        uuid.uuid4()
+    )
+
+    context_key = (
+        f"CSPM_RAG/context/"
+        f"{query_id}.json"
+    )
+
+    context_data = {
+
+        "queryId":
+        query_id,
+
+        "question":
+        question,
+
+        "current_time":
+        datetime.now(
+            timezone.utc
+        ).strftime(
+            "%Y-%m-%d %H:%M:%S UTC"
+        ),
+
+        "category":
+        category,
+
+        "result_count":
+        len(results),
+
+        "related_count":
+        len(related_findings),
+
+        "results":
+        results,
+
+        "conversation_id":
+            conversation_id,
+
+        "previous_question":
+            previous_question,
+
+        "conversation_history":
+            history[-3:],
+
+        "aggregated_findings":
+        aggregated_findings,
+
+        "related_findings":
+        related_findings
+    }
 
     s3.put_object(
+
         Bucket=RAG_BUCKET,
-        Key=query_key,
-        Body=json.dumps({
-            "query_id": query_id,
-            "question": question
-        }),
-        ContentType="application/json"
+
+        Key=context_key,
+
+        Body=json.dumps(
+            context_data,
+            ensure_ascii=False
+        ),
+
+        ContentType=
+        "application/json"
     )
 
-    job_name = (
-        "cspm-rag-query-"
-        f"{uuid.uuid4().hex[:8]}"
+    if conversation_id:
+
+        history.append({
+
+            "queryId":
+            query_id,
+
+            "question":
+            question,
+
+            "category":
+            category,
+
+            "timestamp":
+            datetime.now(
+                timezone.utc
+            ).strftime(
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
+        })
+
+        save_conversation_history(
+
+            conversation_id,
+
+            history
     )
 
-    sm.create_processing_job(
+    event_response = (
 
-        ProcessingJobName=job_name,
+        events.put_events(
 
-        RoleArn=ROLE_ARN,
-
-        AppSpecification={
-
-            "ImageUri": (
-                "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
-                "sagemaker-scikit-learn:1.4-2-cpu-py3"
-            ),
-
-            "ContainerEntrypoint": [
-
-                "python3",
-                "/opt/ml/processing/code/query_rag.py"
-            ]
-        },
-
-        ProcessingResources={
-
-            "ClusterConfig": {
-
-                "InstanceCount": 1,
-                "InstanceType": "ml.t3.medium",
-                "VolumeSizeInGB": 30
-            }
-        },
-
-        ProcessingInputs=[
-
-            {
-
-                "InputName": "query",
-
-                "S3Input": {
-
-                    "S3Uri":
-                    f"s3://{RAG_BUCKET}/{query_key}",
-
-                    "LocalPath":
-                    "/opt/ml/processing/query",
-
-                    "S3DataType":
-                    "S3Prefix",
-
-                    "S3InputMode":
-                    "File"
-                }
-            },
-
-            {
-
-                "InputName": "vector",
-
-                "S3Input": {
-
-                    "S3Uri":
-                    f"s3://{RAG_BUCKET}/CSPM_RAG/vector/",
-
-                    "LocalPath":
-                    "/opt/ml/processing/vector",
-
-                    "S3DataType":
-                    "S3Prefix",
-
-                    "S3InputMode":
-                    "File"
-                }
-            },
-
-            {
-
-                "InputName": "code",
-
-                "S3Input": {
-
-                    "S3Uri":
-                    f"s3://{RAG_BUCKET}/CSPM_RAG/code/",
-
-                    "LocalPath":
-                    "/opt/ml/processing/code",
-
-                    "S3DataType":
-                    "S3Prefix",
-
-                    "S3InputMode":
-                    "File"
-                }
-            }
-        ],
-
-        ProcessingOutputConfig={
-
-            "Outputs": [
+            Entries=[
 
                 {
 
-                    "OutputName": "context",
+                    "Source":
+                    "custom.rag",
 
-                    "S3Output": {
+                    "DetailType":
+                    "RAGCompleted",
 
-                        "S3Uri":
-                        f"s3://{RAG_BUCKET}/CSPM_RAG/context/",
+                    "Detail":
+                    json.dumps({
 
-                        "LocalPath":
-                        "/opt/ml/processing/output",
+                        "queryId":
+                        query_id,
 
-                        "S3UploadMode":
-                        "EndOfJob"
-                    }
+                        "contextKey":
+                        context_key
+                    })
                 }
             ]
-        }
+        )
+    )
+
+    for item in results[:1]:
+
+        print(
+            "VT:",
+            item.get(
+                "virus_total_link"
+            )
+        )
+
+        print(
+            "SHA:",
+            item.get(
+                "file_sha256"
+            )
+        )
+
+    print(
+        f"EventBridge Result: "
+        f"{event_response}"
     )
 
     return {
@@ -2086,788 +2384,1797 @@ def lambda_handler(event, context):
         "queryId":
         query_id,
 
-        "processingJob":
-        job_name
+        "contextKey":
+        context_key,
+
+        "category":
+        category,
+
+        "resultCount":
+        len(results)
     }
 ```
-Lambda 코드는 다음과 같습니다.
-
+4. Answer API(rag-answer-api) Lambda
+> S3에 대한 권한 필요<br>
+> API 호출 시 Lambda 트리거 적용 필요<br>
+> 아래는 전체 코드 정보입니다.
 ```bash
+import json
 import boto3
-import uuid
+import os
 
-sm = boto3.client("sagemaker")
+s3 = boto3.client("s3")
 
-ROLE_ARN = "<SageMaker AI Role ARN>"
+RAG_BUCKET = os.environ["RAG_BUCKET"]
+
 
 def lambda_handler(event, context):
 
-    for record in event["Records"]:
+    try:
 
-        bucket = record["s3"]["bucket"]["name"]
-        key = record["s3"]["object"]["key"]
-
-        input_path = f"s3://{bucket}/{key}"
-
-        print(f"Input File : {input_path}")
-
-        job_name = f"waf-analysis-{uuid.uuid4().hex[:8]}"
-
-        response = sm.create_processing_job(
-
-            ProcessingJobName=job_name,
-
-            RoleArn=ROLE_ARN,
-
-            AppSpecification={
-                "ImageUri": (
-                    "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
-                    "sagemaker-scikit-learn:1.4-2-cpu-py3"
-                ),
-                "ContainerEntrypoint": [
-                    "python3",
-                    "/opt/ml/processing/code/process_waf.py"
-                ]
-            },
-
-            ProcessingResources={
-                "ClusterConfig": {
-                    "InstanceCount": 1,
-                    "InstanceType": "ml.t3.medium",
-                    "VolumeSizeInGB": 30
-                }
-            },
-
-            ProcessingInputs=[
-
-                # 업로드된 WAF 보고서
-                {
-                    "InputName": "input",
-                    "S3Input": {
-                        "S3Uri": input_path,
-                        "LocalPath": "/opt/ml/processing/input",
-                        "S3DataType": "S3Prefix",
-                        "S3InputMode": "File"
-                    }
-                },
-
-                # 분석 코드
-                {
-                    "InputName": "code",
-                    "S3Input": {
-                        "S3Uri": (
-                            "<S3 버킷 경로>/"
-                            "WAF_Report/code/"
-                        ),
-                        "LocalPath": "/opt/ml/processing/code",
-                        "S3DataType": "S3Prefix",
-                        "S3InputMode": "File"
-                    }
-                },
-
-                # 정책 파일
-                {
-                    "InputName": "resource",
-                    "S3Input": {
-                        "S3Uri": (
-                            "<S3 버킷 경로>/"
-                            "WAF_Report/resource/"
-                        ),
-                        "LocalPath": "/opt/ml/processing/resource",
-                        "S3DataType": "S3Prefix",
-                        "S3InputMode": "File"
-                    }
-                }
-            ],
-
-            ProcessingOutputConfig={
-                "Outputs": [
-                    {
-                        "OutputName": "result",
-                        "S3Output": {
-                            "S3Uri": (
-                                "<S3 버킷 경로>/"
-                                "WAF_Report/results/"
-                            ),
-                            "LocalPath": "/opt/ml/processing/output",
-                            "S3UploadMode": "EndOfJob"
-                        }
-                    }
-                ]
-            }
+        query_id = (
+            event["queryStringParameters"]
+            ["queryId"]
         )
 
-        print(f"Processing Job Started : {job_name}")
-        print(response["ProcessingJobArn"])
+        key = (
+            "CSPM_RAG/answer/"
+            f"{query_id}.json"
+        )
 
-    return {
-        "statusCode": 200
-    }
-```
-Lambda Role에는 다음 권한을 필수적으로 필요로합니다.
+        response = s3.get_object(
+            Bucket=RAG_BUCKET,
+            Key=key
+        )
 
-```bash
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "logs:CreateLogGroup",
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "sagemaker:CreateProcessingJob"
-            ],
-            "Resource": "*"
-        },
-        {
-            "Effect": "Allow",
-            "Action": [
-                "iam:PassRole"
-            ],
-            "Resource": [
-                "<Sage Maker AI Role ARN>"
-            ]
+        answer_data = json.loads(
+            response["Body"]
+            .read()
+            .decode("utf-8")
+        )
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type":
+                "application/json",
+                "Access-Control-Allow-Origin":
+                "*"
+            },
+            "body": json.dumps(
+                {
+                    "status":
+                    "Completed",
+
+                    "queryId":
+                    query_id,
+
+                    "answer":
+                    answer_data["answer"]
+                },
+                ensure_ascii=False
+            )
         }
-    ]
-}
-```
-Lambda 에는 다음과 같은 리소스 권한도 필적입니다. 참고로 해당 과정은 S3 버킷 이벤트 알림 설정에서도 작업 가능합니다.
 
-```bash
-{
-  "Version": "2012-10-17",
-  "Id": "default",
-  "Statement": [
-    {
-      "Sid": "event_permissions_from_bucket_WAF-S3-Trigger",
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "s3.amazonaws.com"
-      },
-      "Action": "lambda:InvokeFunction",
-      "Resource": "<Lambda ARN>",
-      "Condition": {
-        "StringEquals": {
-          "AWS:SourceAccount": "747935822721"
-        },
-        "ArnLike": {
-          "AWS:SourceArn": "<S3 버킷 ARN>"
+    except Exception:
+
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type":
+                "application/json",
+                "Access-Control-Allow-Origin":
+                "*"
+            },
+            "body": json.dumps(
+                {
+                    "status":
+                    "Processing"
+                }
+            )
         }
-      }
-    }
-  ]
-}
 ```
-
-## 참고. process_waf.py
-
-해당 파일을 /WAF_Report/code 폴더에 업로드하면 Lambda가 해당 파일을 실행합니다.
-
+5. AI Security Analyst(rag-answer-jaehwan) Lambda
+> Bedrock, S3에 대한 권한 필요<br>
+> EventBridge에 대한 트리거 적용 필요<br>
+> 아래는 전체 코드 정보입니다.
 ```bash
-import boto3
 import json
-import pandas as pd
-import openpyxl
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
-from concurrent.futures import (
-    ThreadPoolExecutor,
-    as_completed
-)
+import boto3
+import os
+from collections import Counter
+import xml.etree.ElementTree as ET
+import requests
 
-# ===============================
-# ✅ 경로
-# ===============================
-result = "WAF Report/6월waf_alb.xlsx"
-rule   = "WAF Report/waf 로그 분석1.xlsx"
-output = "WAF Report/WAF_분석_결과.xlsx"
+MAX_WILDFIRE_SIZE = 10000
 
-# ===============================
-# ✅ Boderline 설정
-# ===============================
-THIN = Side(style="thin")
+#Virus Total API 삽입
+VT_API_KEY = os.environ[
+    "VT_API_KEY"
+]
 
-BOX_BORDER = Border(
-    left=THIN,
-    right=THIN,
-    top=THIN,
-    bottom=THIN
-)
-
-# ===============================
-# ✅ Bedrock Client
-# ===============================
+s3 = boto3.client("s3")
 
 bedrock = boto3.client(
     "bedrock-runtime",
     region_name="ap-northeast-2"
 )
 
-MODEL_ID = "anthropic.claude-3-5-sonnet-20240620-v1:0"
+RAG_BUCKET = os.environ["RAG_BUCKET"]
 
-# ===============================
-# ✅ Bedrock Function
-# ===============================
+MODEL_ID = os.environ[
+    "MODEL_ID"
+]
 
-def get_bedrock_analysis(ruleset, top5_df, actual_count):
-
-    top_text = top5_df[
-        [
-            "matched_ruleid",
-            "location",
-            "httpMethod",
-            "host_header",
-            "uri",
-            "args",
-            "matcheddata",
-            "clientip",
-            "TotalCount",
-            "EventCount"
-        ]
-    ].to_json(
-        orient="records",
-        force_ascii=False,
-        indent=2
-    )
-
-    prompt = f"""
-당신은 AWS WAF 보안 분석 전문가이다.
-
-아래는 AWS WAF RuleSet [{ruleset}]의 matched_ruleid별 총 탐지 건수 기준 상위 5개 탐지 항목이다.
-
-{top_text}
-
-다음 기준을 반드시 준수하여 분석하라.
-
-1. RuleSet 이름에 BODY가 포함된 경우에는 HTTP Body Payload를 확인할 수 없으므로 공격으로 단정하지 말고 오탐 가능성을 중심으로 분석한다.
-
-2. RuleSet 이름에 QUERYARGUMENTS, HEADER 또는 URIPATH가 포함된 경우에는 host_header, uri, args, matcheddata, clientip를 근거로 공격 가능성을 분석한다.
-
-3. 입력 데이터에 없는 내용은 절대 추측하지 않는다.
-- 국가
-- 클라우드 사업자(CSP)
-- 공격 그룹
-- 공격자의 의도
-- 서버 취약 여부
-
-4. 분석 대상 선정 기준
- - Count 기준 TOP5 이벤트를 분석하지 않는다.
- - matched_ruleid별 총 탐지 건수를 집계한다.
- - 총 탐지 건수 기준 상위 5개의 matched_ruleid를 분석한다.
- - 동일 matched_ruleid는 1회만 분석한다.
-
-5. 각 이벤트마다 아래 형식으로 작성한다.
-
-[분석 기준]
-
-반드시 의견의 가장 첫 부분에 작성한다.
-
-형식:
-
-본 분석은 이벤트 유형 내 탐지정책별 총 탐지 건수를 집계한 후, 총 탐지 건수 기준 상위 {actual_count}개 Rule을 대상으로 분석을 수행하였습니다.
-각 탐지 정책은 해당 정책에서 가장 많이 탐지된 대표 이벤트를 기준으로 분석하였습니다.
-
-■ RULE: matched_ruleid 값
-- 분석 대상
-  ;출발지IP: clientip / 도메인: host_header / URI: uri / 시도 횟수: EventCount / 총 탐지 건수: TotalCount
-  
-- 분석 결과
-  ;BODY 정책은 실제 Payload 확인이 불가능하므로 오탐 가능성을 고려하여 분석
-  ;QUERYARGUMENTS, HEADER, URIPATH 정책은 host_header, uri, args, matcheddata, httpMethod, location 정보를 종합하여 공격 가능성을 중심으로 분석한다.
-  
-- 권고 사항
-  ;1문장으로 간결하게 표현
-
-6. ■ RULE 상세 분석 작성 규칙
-
-- 시도 횟수는 EventCount를 사용한다.
-- 총 탐지 건수는 TotalCount를 사용한다.
-- TotalCount와 EventCount를 혼용하지 않는다.
-
-7. 입력으로 제공된 데이터는 정확히 {actual_count}건이다. 반드시 {actual_count}개의 ■ RULE: 블록을 출력한다.
-
-8. 분석 결과가 어떤 탐지 이벤트에 대한 것인지 명확히 식별할 수 있도록 반드시 분석 대상 정보를 기재한다.
-
-9. 입력 데이터에 존재하지 않는 정보는 절대 생성하거나 추측하지 않는다.
-
-10. 출력 예시는 아래와 같다.
-
-■ CROSSSITESCRIPTING_BODY
- - 분석 대상
-    ;출발지IP: 58.97.120.185 / 도메인: loiswmsappglobal.cjlogistics.com / URI: /minkSvc / 시도 횟수: 1245 / 총 탐지 건수: 10254
-    
- - 분석 결과
-    ;AWS WAF 로그 특성상 실제 Body Payload 확인이 불가능하여 정상 서비스 요청에 의한 오탐 가능성을 배제할 수 없다.
-
- - 권고 사항
-    ;서비스 담당자를 통한 정상 요청 여부 확인 후 예외 적용 검토가 필요하다.
-
-11. 분석 내용을 출력 시  ■ RULE: 블록 앞단에는 아무런 서도도 입력하지 않는다. ex)이해했습니다. 분석을 시작하겠습니다.
-
-12. 출력 검증 규칙
- - 출려된 ■ RULE 블록 개수는 반드시 {actual_count}개여야 한다. 
- - {actual_count}개보다 적게 출력한 경우 응답을 종료하지 말고 나머지 RULE을 계속 작성한다.
- - 입력 데이터에 없는 RULE을 새로 생성하지 않는다.
-
-13. 첫 번째 이벤트로부터 반드시 아래 형식으로 시작한다.
-    ■ RULE: RULE명
-    첫 번째 RULE에서도 ■ 기호를 생략하지 않는다.
-
-14. 각 이벤트는 독립적으로 분석한다.
-- "첫 번째 이벤트와 유사", "두 번째 이벤트와 동일", "앞선 이벤트", "이전 이벤트" 등의 표현을 사용하지 않는다.
-- 현재 이벤트에 제공된
-  host_header,
-  uri,
-  args,
-  matcheddata,
-  clientip,
-  httpMethod,
-  EventCount,
-  TotalCount
-  정보만 근거로 분석한다.
-- 동일한 Source IP 또는 URI가 다른 이벤트에 존재하더라도 이를 언급하지 않는다.
-- 다른 이벤트와의 연관성 또는 공격 시나리오를 추론하지 않는다.
-- 각 ■ RULE 블록은 독립적인 분석 보고서로 작성한다.
-
-"""
-
-    body = {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": 4096,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    }
-
-    response = bedrock.invoke_model(
-        modelId=MODEL_ID,
-        body=json.dumps(body),
-        contentType="application/json",
-        accept="application/json"
-    )
-
-    result = json.loads(response["body"].read())
-
-    return result["content"][0]["text"]
-
-# ===============================
-# ✅ Claud 병렬 처리
-# ===============================
-def run_ai_analysis(ruleset, sub):
-
-    top5_rules = (
-        sub.groupby("matched_ruleid")
-           .agg(
-               TotalCount=("Count", "sum")
-           )
-           .reset_index()
-           .sort_values(
-               "TotalCount",
-               ascending=False
-           )
-           .head(5)
-    )
-
-    ai_rows = []
-
-    for _, rule_row in top5_rules.iterrows():
-    
-        rule_name = rule_row["matched_ruleid"]
-    
-        sample = (
-            sub[
-                sub["matched_ruleid"] == rule_name
-            ]
-            .sort_values(
-                "Count",
-                ascending=False
-            )
-            .iloc[0]
-        )
-    
-        ai_rows.append(
-            {
-                "matched_ruleid": sample["matched_ruleid"],
-                "location": sample["location"],
-                "host_header": sample["host_header"],
-                "httpMethod": sample["httpMethod"],
-                "uri": sample["uri"],
-                "args": sample["args"],
-                "matcheddata": sample["matcheddata"],
-                "clientip": sample["clientip"],
-        
-                # Rule 전체 탐지 수
-                "TotalCount": int(
-                    rule_row["TotalCount"]
-                ),
-        
-                # 대표 이벤트 탐지 수
-                "EventCount": int(
-                    sample["Count"]
-                )
-            }
-        )
-    ai_df = pd.DataFrame(ai_rows)
+def parse_wildfire_report(xml_text):
 
     try:
-        
-        actual_count = len(ai_df)
 
-        opinion = get_bedrock_analysis(
-            ruleset,
-            ai_df,
-            actual_count
+        root = ET.fromstring(xml_text)
+
+        result = {
+
+            "overall_verdict": None,
+
+            "verdict_description":
+                "overall_verdict=file_info.malware",
+
+            "file_info": {},
+
+            "PE_static_analysis": None,
+
+            "sandbox_analysis": []
+        }
+
+        file_info = root.find(
+            ".//file_info"
         )
+
+        reports = root.findall(
+            ".//report"
+        )
+
+        if file_info is not None:
+
+            overall_verdict = file_info.findtext(
+                "malware"
+            )
+
+            result["overall_verdict"] = (
+                overall_verdict
+            )
+
+            result["file_info"] = {
+
+                "sha256":
+                    file_info.findtext("sha256"),
+
+                "sha1":
+                    file_info.findtext("sha1"),
+
+                "md5":
+                    file_info.findtext("md5"),
+
+                "file_type":
+                    file_info.findtext("filetype"),
+
+                "size":
+                    file_info.findtext("size"),
+
+                "file_signer":
+                    file_info.findtext("file_signer"),
+
+                "malware":
+                    file_info.findtext("malware")
+            }
+
+        if file_info is not None:
+
+            overall_verdict = file_info.findtext(
+                "malware"
+            )
+
+            result["overall_verdict"] = (
+                overall_verdict
+            )
+
+            result["file_info"] = {
+
+                "sha256":
+                    file_info.findtext("sha256"),
+
+                "sha1":
+                    file_info.findtext("sha1"),
+
+                "md5":
+                    file_info.findtext("md5"),
+
+                "file_type":
+                    file_info.findtext("filetype"),
+
+                "size":
+                    file_info.findtext("size"),
+
+                "file_signer":
+                    file_info.findtext("file_signer"),
+
+                "malware":
+                    file_info.findtext("malware")
+            }
+
+        for report in reports:
+
+            software = report.findtext(
+                "software"
+            )
+
+            if not software:
+                continue
+
+            verdict = report.findtext(
+                "malware"
+            )
+
+            summary = []
+
+            for entry in report.findall(
+                ".//summary/entry"
+            ):
+
+                summary.append({
+
+                    "behavior":
+                        (
+                            entry.text or ""
+                        ).strip(),
+
+                    "details":
+                        entry.attrib.get(
+                            "details"
+                        ),
+
+                    "wildfire_score":
+                        entry.attrib.get(
+                            "score"
+                        )
+                })
+
+            # Static Analysis
+            #
+            if software == "PE Static Analyzer":
+
+                result[
+                    "PE_static_analysis"
+                ] = {
+
+                    "tool":
+                        software,
+
+                    "verdict":
+                        verdict,
+
+                    "findings":
+                        summary
+                }
+
+                continue
+
+            # Sandbox Analysis
+            processes = []
+
+            for proc in report.findall(
+                ".//process_tree/process"
+            ):
+
+                process_text = (
+                    proc.attrib.get("text")
+                    or proc.attrib.get("name")
+                )
+
+                if process_text:
+
+                    processes.append(
+                        process_text
+                    )
+
+            for proc in report.findall(
+                ".//process_list/process"
+            ):
+
+                process_name = proc.attrib.get(
+                    "name"
+                )
+
+                if process_name:
+
+                    processes.append(
+                        process_name
+                    )
+
+                process_text = proc.attrib.get(
+                    "text"
+                )
+
+                if process_text:
+
+                    processes.append(
+                        process_text
+                    )
+
+            processes = list(
+                dict.fromkeys(
+                    processes
+                )
+            )
+
+            result[
+                "sandbox_analysis"
+            ].append({
+
+                "environment":
+                    software,
+
+                "verdict":
+                    verdict,
+
+                "processes":
+                    processes,
+
+                "behaviors":
+                    summary
+            })
+
+        if not result[
+            "sandbox_analysis"
+        ]:
+
+            result[
+                "sandbox_analysis"
+            ] = None
+
+        return result
 
     except Exception as e:
 
-        opinion = (
-            f"Bedrock 분석 실패\n\n"
-            f"{str(e)}"
+        print(
+            f"WildFire Parse Error : {e}"
         )
 
-    return ruleset, opinion
-    
-# ===============================
-# ✅ 스타일
-# ===============================
-HEADER_FILL = PatternFill("solid", fgColor="D9D9D9")
-DESC_FILL   = PatternFill("solid", fgColor="FFF2CC")
+        return None
 
-CENTER = Alignment(horizontal="center", vertical="center", wrap_text=True)
-LEFT   = Alignment(horizontal="left", vertical="top", wrap_text=True)
+def get_wildfire_report(sha256):
 
-# ✅ ✅ 폰트 (🔥 전체 8.5로 통일)
-BASE_FONT = Font(name="맑은 고딕", size=8.5)
-BOLD_FONT = Font(name="맑은 고딕", size=8.5, bold=True)
+    try:
 
-# ===============================
-# ✅ 테두리
-# ===============================
-def border_box(ws, r1, c1, r2, c2):
-    for r in range(r1, r2 + 1):
-        for c in range(c1, c2 + 1):
-            ws.cell(r, c).border = BOX_BORDER
-            
-# ===============================
-# ✅ merge helper
-# ===============================
-def merge(ws, r1, c1, r2, c2):
-    ws.merge_cells(start_row=r1, start_column=c1, end_row=r2, end_column=c2)
+        response = requests.post(
 
-# ===============================
-# ✅ 로그 로드
-# ===============================
-df = pd.read_excel(result).fillna("")
+            "https://wildfire.paloaltonetworks.com/publicapi/get/report",
 
-for c in df.columns:
-    if df[c].dtype == "object":
-        df[c] = df[c].astype(str).str.strip()
+            data={
+                "apikey": os.environ[
+                    "WILDFIRE_API_KEY"
+                ],
+                "hash": sha256
+            },
 
-df["matched_ruleid"] = df["matched_ruleid"].str.upper()
+            timeout=20
+        )
 
-# ===============================
-# ✅ 정책 파싱
-# ===============================
-rule_df = pd.read_excel(rule, sheet_name="정책 설명", header=None).fillna("")
+        response.raise_for_status()
 
-ruleset_rules = {}
-rule_to_ruleset = {}
-current_ruleset = None
+        return response.text
 
-rule_desc_map = {}
+    except Exception as e:
 
-for ruleset, rules in ruleset_rules.items():
+        print(
+            f"WildFire ERROR : {e}"
+        )
 
-    for rule_name, desc in rules:
+        return None
 
-        rule_desc_map[
-            rule_name.upper()
-        ] = desc
+def lambda_handler(event, context):
 
-for i in range(len(rule_df)):
-
-    col_a = str(rule_df.iloc[i, 0]).strip()
-    col_b = str(rule_df.iloc[i, 1]).strip()
-
-    desc = " ".join(
-        str(rule_df.iloc[i, j]).strip()
-        for j in range(2, len(rule_df.columns))
-        if str(rule_df.iloc[i, j]).strip()
+    print(
+        json.dumps(
+            event,
+            indent=2
+        )
     )
 
-    if col_a and "_" not in col_a:
-        current_ruleset = col_a
-        ruleset_rules.setdefault(current_ruleset, [])
-
-    if current_ruleset is None:
-        continue
-
-    if col_b:
-        rule_name = col_b.upper()
-        ruleset_rules[current_ruleset].append((rule_name, desc))
-        rule_to_ruleset[rule_name] = current_ruleset
-
-# ===============================
-# ✅ 집계
-# ===============================
-group_cols = [
-    "matched_ruleid","clientip","uri",
-    "httpMethod","host_header","country"
-]
-group_cols = [c for c in group_cols if c in df.columns]
-agg_df = (
-    df.groupby(group_cols)
-    .agg(
-        Count=("matched_ruleid","size"),
-        location=("location","first"),
-        args=("args","first"),
-        matcheddata=("matcheddata","first"),
-        user_agent=("user_agent","first"),
-        webaclid=("webaclid","first")
+    query_id = (
+        event["detail"]
+        ["queryId"]
     )
-    .reset_index()
-)
-agg_df["RuleSet"] = agg_df["matched_ruleid"].map(rule_to_ruleset)
 
-ruleset_data = {
-    ruleset: grp.copy()
-    for ruleset, grp in agg_df.groupby("RuleSet")
-}
+    context_key = (
+        event["detail"]
+        ["contextKey"]
+    )
 
-# ===============================
-# ✅ AI 분석 병렬 처리
-# ===============================
-ai_results = {}
+    print(
+        f"Query ID : {query_id}"
+    )
 
-with ThreadPoolExecutor(max_workers=5) as executor:
+    print(
+        f"Context Key : {context_key}"
+    )
 
-    futures = []
+    response = s3.get_object(
 
-    for ruleset, rules in ruleset_rules.items():
+        Bucket=RAG_BUCKET,
 
-        sub = ruleset_data.get(ruleset)
+        Key=context_key
+    )
 
-        if sub is None or sub.empty:
+    context_data = json.loads(
+
+        response["Body"]
+        .read()
+        .decode("utf-8")
+    )
+
+    question = context_data.get(
+
+        "question",
+
+        "CSPM 보안 이슈를 분석해 주세요."
+    )
+
+    previous_question = context_data.get(
+        "previous_question"
+    )
+
+    conversation_history = context_data.get(
+        "conversation_history",
+        []
+    )
+
+    # COMPUTE Finding 수집
+    compute_findings = [
+        f
+        for f in context_data.get(
+            "results",
+            []
+        )
+        if f.get("event_type")
+        == "COMPUTE"
+    ]
+
+    counter = Counter()
+
+    sha256_mapping = {}
+
+    for finding in compute_findings:
+
+        sha256 = finding.get(
+            "file_sha256"
+        )
+
+        if not sha256:
             continue
 
-        future = executor.submit(
-            run_ai_analysis,
-            ruleset,
-            sub
+        counter[sha256] += 1
+
+        sha256_mapping[
+            sha256
+        ] = finding
+
+    # 특정 Malware 직접 질의 여부 확인
+    matched_findings = []
+
+    question_lower = question.lower()
+
+    for finding in compute_findings:
+
+        malware_file = str(
+            finding.get(
+                "malware_file",
+                ""
+            )
+        ).lower()
+
+        asset_name = str(
+            finding.get(
+                "asset_name",
+                ""
+            )
+        ).lower()
+
+        sha256 = str(
+            finding.get(
+                "file_sha256",
+                ""
+            )
+        ).lower()
+
+        if (
+            malware_file
+            and malware_file in question_lower
+        ):
+            matched_findings.append(
+                finding
+            )
+
+        elif (
+            asset_name
+            and asset_name in question_lower
+        ):
+            matched_findings.append(
+                finding
+            )
+
+        elif (
+            sha256
+            and sha256 in question_lower
+        ):
+            matched_findings.append(
+                finding
+            )
+
+    #조회 대상 결정
+    wildfire_report = None
+    vt_findings = []
+
+    if matched_findings:
+
+        target_sha256 = (
+            matched_findings[0]
+            .get("file_sha256")
         )
 
-        print(f"[AI START] {ruleset}")
+        top_sha256 = [
+            (
+                target_sha256,
+                1
+            )
+        ]
 
-        futures.append(future)
+        wildfire_default_msg = (
+            "API 조회 실패"
+        )
 
-    for future in as_completed(futures):
+        if target_sha256:
+
+            wildfire_xml = (
+                get_wildfire_report(
+                    target_sha256
+                )
+            )
+
+            wildfire_report = None
+
+            if wildfire_xml:
+
+                wildfire_report = (
+                    parse_wildfire_report(
+                        wildfire_xml
+                    )
+                )
+
+        print(
+            f"DETAIL MODE : {target_sha256}"
+        )
+
+    else:
+
+        top_sha256 = (
+            counter.most_common(3)
+        )
+
+        wildfire_default_msg = (
+            "미수행"
+        )
+
+        print(
+            f"SUMMARY MODE : {top_sha256}"
+        )
+
+    for sha256, count in top_sha256:
+
+        print(
+            f"VT LOOKUP : {sha256}"
+        )
 
         try:
 
-            ruleset, opinion = future.result()
+            url = (
+                f"https://www.virustotal.com/api/v3/files/{sha256}"
+            )
 
-            ai_results[ruleset] = opinion
+            headers = {
+                "x-apikey": VT_API_KEY
+            }
 
-            print(f"[AI COMPLETE] {ruleset}")
+            response = requests.get(
+                url,
+                headers=headers,
+                timeout=10
+            )
+
+            response.raise_for_status()
+
+            vt_json = response.json()
+    
+            attributes = (
+                vt_json
+                .get("data", {})
+                .get("attributes", {})
+            )
+
+            stats = attributes.get(
+                "last_analysis_stats",
+                {}
+            )
+
+            malicious = stats.get(
+                "malicious",
+                0
+            )
+
+            suspicious = stats.get(
+                "suspicious",
+                0
+            )
+
+            total_engines = sum(
+                stats.values()
+            )
+    
+            vendors = attributes.get(
+                "last_analysis_results",
+                {}
+            )
+
+            vendor_results = {}
+
+            for vendor, result in vendors.items():
+
+                if result.get(
+                    "category"
+                ) in [
+                    "malicious",
+                    "suspicious"
+                ]:
+
+                    vendor_results[
+                        vendor
+                    ] = result.get(
+                        "result"
+                    )
+
+            vendor_results = dict(
+                list(
+                    vendor_results.items()
+                )[:20]
+            )
+
+            vt_findings.append({
+
+                "count":
+                    count,
+
+                "sha256":
+                    sha256,
+
+                "alert_name":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "alert_name"
+                    ),
+
+                "description":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "description"
+                    ),
+
+                "malware_file":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "malware_file"
+                    ),
+
+                "file_path":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "file_path"
+                    ),
+
+                "group_name":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "group_name"
+                    ),
+
+                "owner_name":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "owner_name"
+                    ),
+
+                "last_modified":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "last_modified"
+                    ),
+
+                "asset_name":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "asset_name"
+                    ),
+
+                "virus_total_link":
+                    sha256_mapping.get(
+                        sha256,
+                        {}
+                    ).get(
+                        "virus_total_link"
+                    ),
+
+                "vt_stats":
+                    stats,
+
+                "vt_detection":
+                    f"{malicious + suspicious}/{total_engines}",
+
+                "vendor_results":
+                    vendor_results
+            })
 
         except Exception as e:
 
-            print(f"[AI ERROR] {str(e)}")
+            print(
+                f"VT ERROR : {sha256} : {e}"
+            )
 
-# ===============================
-# ✅ 엑셀 생성
-# ===============================
-wb = openpyxl.Workbook()
-wb.remove(wb.active)
+    prompt = f"""
+당신은 AWS CSPM 보안 전문가입니다.
 
-for ruleset, rules in ruleset_rules.items():
+최근 대화:
+{json.dumps(
+    conversation_history,
+    ensure_ascii=False,
+    indent=2
+)}
 
-    sub = agg_df[agg_df["RuleSet"] == ruleset]
-    if sub.empty:
-        continue
+이전 질문:
+{previous_question}
 
-    ws = wb.create_sheet(ruleset[:30])
+현재 질문:
+{question}
 
-    # =========================
-    # ✅ AI 분석 (TOP 5)
-    # =========================
-    ai_opinion = ai_results.get(
-        ruleset,
-        "분석 결과 없음"
+분석 데이터:
+{json.dumps(
+    {
+        "current_time":
+            context_data.get(
+                "current_time"
+            ),
+
+        "results_total":
+            len(
+                context_data.get(
+                    "results",
+                    []
+                )
+            ),
+
+        "results":
+            context_data.get(
+                "results",
+                []
+            )[:5],
+
+        "related_findings_total":
+            len(
+                context_data.get(
+                    "related_findings",
+                    []
+                )
+            ),
+
+        "related_findings":
+            context_data.get(
+                "related_findings",
+                []
+            )[:5],
+
+        "aggregated_findings_total":
+            len(
+                context_data.get(
+                    "aggregated_findings",
+                    []
+                )
+            ),
+
+        "aggregated_findings":
+            context_data.get(
+                "aggregated_findings",
+                []
+            )[:5]
+    },
+    ensure_ascii=False,
+    indent=2
+)}
+
+VirusTotal 분석 대상:
+{json.dumps(
+    vt_findings,
+    ensure_ascii=False,
+    indent=2
+)}
+
+WildFire 분석 결과:
+{
+    json.dumps(
+        wildfire_report,
+        ensure_ascii=False,
+        indent=2
+    )
+    if wildfire_report
+    else wildfire_default_msg
+}
+
+규칙
+
+[기본 원칙]
+- 제공된 Context만 사용한다.
+- Context에 없는 내용은 추측하지 않는다.
+- similarity_score, distance는 출력하지 않는다.
+- virus_total_link는 원문 URL만 출력한다.
+- Markdown 링크, HTML 링크를 생성하지 않는다.
+- 답변은 항상 결과 요약부터 시작한다.
+- 결과가 존재하면 "검색 결과가 없습니다", "관련 정보를 찾을 수 없습니다" 등의 표현을 사용하지 않는다.
+
+[Finding 유형 정의]
+- POSTURE = CSPM 구성 이슈
+- VULNERABILITY = CVE 취약점
+- COMPUTE = Malware 및 Runtime
+- CORRELATION = Activity 탐지
+
+[질문 해석 규칙]
+- CSPM, Compliance → POSTURE
+- 취약점, CVE → VULNERABILITY
+- Malware, Runtime → COMPUTE
+- Correlation, Activity → CORRELATION
+
+[시간 분석 규칙]
+- current_time 기준으로 오늘, 어제, 최근, 최신을 판단한다.
+- observed_at을 기준으로 분석한다.
+
+[데이터 건수 규칙]
+아래 값이 실제 제공된 결과 수보다 큰 경우 일부 결과만 분석된 상태이다.
+- results_total6
+- related_findings_total
+- aggregated_findings_total
+
+일부 데이터만 제공된 경우 답변 마지막에 다음 문구를 출력한다.
+※ 응답 성능을 위해 일부 결과만 분석되었습니다.
+
+출력 예시
+- 전체 Malware 32건 중 대표 5건 분석
+- 전체 연관 이슈 18건 중 대표 5건 분석
+
+[분석 우선순위]
+1. Severity
+2. similarity_score
+3. observed_at
+
+Severity:
+CRITICAL > HIGH > MEDIUM > LOW
+
+[공통 분석]
+- 계정(asset_account)
+- 리전(asset_region)
+- 자산(asset_name)
+
+규칙
+- remediation이 존재하면 우선 사용한다.
+- 동일 alert_name은 하나로 묶는다.
+- 동일 Malware는 발생 횟수를 집계한다.
+
+[보안 현황 질문]
+다음 형식으로 답변한다.
+
+요약
+
+POSTURE : n건
+VULNERABILITY : n건
+COMPUTE : n건
+CORRELATION : n건
+
+대표 이슈
+- POSTURE
+- VULNERABILITY
+- COMPUTE
+- CORRELATION
+
+COMPUTE 대표 이슈는 Malware 이름과 발생 건수를 함께 출력한다.
+
+예시
+
+대표 이슈
+
+- iexplore.exe : 48건
+- atl.dll : 20건
+- spoolsv.exe : 15건
+
+[계정 분석]
+
+- asset_account 기준으로 분석한다.
+- 계정번호를 반드시 출력한다.
+- POSTURE와 VULNERABILITY가 모두 존재하면 연관 위험을 설명한다.
+
+[CORRELATION]
+
+- 취약점으로 설명하지 않는다.
+- 탐지된 행위를 설명한다.
+- 자산, 계정, 리전, 발생 시각을 포함한다.
+
+[대화 연속성]
+다음 표현은 이전 질문을 이어받는다.
+
+- 규정준수는?
+- 취약점은?
+- 컴퓨트는?
+- Correlation은?
+- 그 계정은?
+- 그 자산은?
+- 그리고?
+- 나머지는?
+- 다른 이슈는?
+
+이전 질문이 Malware 분석인 경우
+
+- 다른 이슈
+- 다른 것
+- 다른 Malware
+- 다른 파일
+- 다음 것
+- 나머지 Malware
+
+는 COMPUTE Finding 내에서만 탐색한다.
+POSTURE, VULNERABILITY, CORRELATION 으로 유형을 변경하지 않는다.
+
+[POSTURE 분석]
+- 구성 오류 원인을 설명한다.
+- 영향 자산을 설명한다.
+- 보안 위험을 설명한다.
+- remediation을 우선 사용한다.
+
+출력 형식
+1. 이슈명
+2. 영향 자산
+3. 위험성
+4. 권장 조치
+
+[VULNERABILITY 분석]
+- CVE 정보를 설명한다.
+- 영향 자산을 설명한다.
+- 심각도를 설명한다.
+- remediation을 우선 사용한다.
+
+출력 형식
+1. 취약점
+2. 영향 자산
+3. 위험성
+4. 심각도
+5. 권장 조치
+
+[Malware 분석]
+- description을 기반으로 설명한다.
+- 사실 정보만 설명한다.
+- 실행 중이라고 추측하지 않는다.
+- Runtime 탐지 여부는 Context에 존재하는 경우만 설명한다.
+- Linux 환경에서 Windows 파일 발견만으로 비정상이라 판단하지 않는다.
+- Windos 파일에 악성 행위가 발견되었더라도 Linux 환경에서 실행되었다면 영향도는 낮다.
+- 행위의 목적을 추측하지 않는다.
+
+다음 내용은 명확한 근거가 있는 경우에만 설명한다.
+- 권한 상승
+- 지속성 확보
+- 내부 정찰
+- 횡적 이동
+- 침해 성공
+- APT 활동
+
+[WildFire 분석]
+- overall_verdict는 WildFire 최종 판정이다.
+- sandbox_analysis[].verdict는 개별 샌드박스 환경 판정이다.
+- 최종 평가는 overall_verdict를 우선 사용한다.
+- WildFire score는 참고 정보이다.
+- 낮은 score를 고위험 행위로 해석하지 않는다.
+- behavior.details가 존재하는 경우 우선 참고한다.
+- WildFire 결과는 분석용 가상 환경에서 관찰된 행위이다.
+- WildFire 결과만으로 실제 자산에서 동일 행위가 발생했다고 판단하지 않는다.
+- Linux 자산에서 Windows 파일이 탐지된 경우 샌드박스 분석 결과와 실제 영향도를 구분하여 설명한다.
+- Windows 악성 행위가 관찰되었더라도 Linux 환경에서 실행 정황이 없는 경우 실제 영향도는 제한적일 수 있다.
+
+정적 분석
+- PE_static_analysis 기반으로 설명한다.
+
+동적 분석
+- sandbox_analysis 기반으로 설명한다.
+- 탐지 행위는 샌드박스 실행 중 관찰된 결과이다.
+
+[VirusTotal 평판분석]
+- 탐지율은 vt_detection 값을 사용한다.
+- 주요 탐지 벤더는 malicious 또는 suspicious 로 분류한 벤더만 출력한다.
+- 주요 탐지 벤더는 최대 5개까지 출력한다.
+- VirusTotal 평판을 별도로 해석하거나 추론하지 않는다.
+
+출력 형식
+탐지율
+- n/m
+주요 탐지 벤더
+- Vendor1 : Result
+- Vendor2 : Result
+- Vendor3 : Result
+
+[Malware 출력 형식]
+1. 파일 정보
+- 파일 이름
+- SHA256
+- 파일 경로
+- 심각도
+2. Malware 분석
+3. 영향 자산
+- 자산명
+- 계정
+- 리전
+4. VirusTotal 평판분석
+- 탐지율
+- 주요 탐지 벤더
+5. WildFire 분석 결과
+최종 판정
+
+정적 분석 (PE Static Analysis)
+- 주요 분석 결과
+
+동적 분석 (Sandbox Analysis)
+- 분석 환경: Environment
+- 실행 프로세스: Process
+- 탐지 행위: Behavior
+
+종합 분석 의견
+
+권장 조치
+
+[권장 조치]
+- 권장 조치는 Malware 분석, WildFire 분석, VirusTotal 분석 결과를 종합하여 작성한다.
+- 권장 조치는 Context에 포함된 사실과 분석 결과에 근거하여 작성한다.
+- remediation이 존재하면 remediation을 최우선으로 사용한다.
+- remediation이 존재하지 않는 경우에도 Malware 분석, WildFire 분석, VirusTotal 분석 결과에서 직접 확인 가능한 사실에 기반하여 작성한다.
+- Context에 없는 권장 조치를 생성하지 않는다.
+- 일반적인 보안 권고를 생성하지 않는다.
+- WildFire 또는 VirusTotal 결과만으로 실제 자산에서 동일 행위가 발생했다고 판단하지 않는다.
+- WildFire 샌드박스에서 관찰된 행위를 실제 자산에서 발생한 행위로 설명하지 않는다.
+- Linux 자산에서 Windows 악성 행위가 관찰된 경우 실제 영향도와 샌드박스 분석 결과를 구분한다.
+- 권장 조치는 실제 관찰된 사실에 대한 확인 또는 검토 수준으로만 작성한다.
+- 분석 결과에 없는 조사, 모니터링, 재배포, 복구, 차단, 제거 등의 조치를 생성하지 않는다.
+"""
+
+    response = bedrock.invoke_model(
+
+        modelId=MODEL_ID,
+
+        body=json.dumps({
+
+            "anthropic_version":
+            "bedrock-2023-05-31",
+
+            "max_tokens":
+            2000,
+
+            "messages": [
+
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        })
     )
 
-    # -------------------------
-    # ✅ 헤더
-    # -------------------------
-    headers = [
-        "Count","탐지 장비","탐지 정책","탐지 위치",
-        "출발지IP","국가코드","HTTP Method","host header",
-        "User Agent","URI","파라미터","탐지 문자열"
-    ]
+    result = json.loads(
 
-    for i, h in enumerate(headers, 1):
-        cell = ws.cell(1, i, h)
-        cell.fill = HEADER_FILL
-        cell.alignment = CENTER
-        cell.font = BOLD_FONT
-
-    border_box(ws, 1, 1, 1, len(headers))
-
-    # -------------------------
-    # ✅ 이벤트 데이터
-    # -------------------------
-    row_idx = 2
-    
-    for r in sub.itertuples(index=False):
-    
-        arn = r.webaclid
-
-        # ✅ UUID 제거 (최종 안정)
-        arn = r.webaclid
-        webacl_value = arn.rsplit("/", 1)[0] if "/" in arn else arn
-
-        vals = [
-            int(r.Count),
-            webacl_value,
-            r.matched_ruleid,
-            r.location,
-            r.clientip,
-            r.country,
-            r.httpMethod,
-            r.host_header,
-            r.user_agent,
-            r.uri,
-            r.args,
-            r.matcheddata
-        ]
- 
-        for c_idx, v in enumerate(vals, 1):
-            cell = ws.cell(row_idx, c_idx, v)
-            cell.alignment = CENTER
-            cell.font = BASE_FONT
-     
-        row_idx += 1
-
-    border_box(ws, 2, 1, row_idx - 1, len(headers))
-
-    # =========================
-    # ✅ 패턴 상세
-    # =========================
-    start_col = 15
-
-    merge(ws, 1, start_col, 1, start_col+1)
-
-    t = ws.cell(1, start_col, "패턴 상세 정보")
-    t.fill = DESC_FILL
-    t.alignment = CENTER
-    t.font = BOLD_FONT
-
-    ws.cell(2, start_col, "Rule").fill = DESC_FILL
-    ws.cell(2, start_col+1, "설명").fill = DESC_FILL
-
-    ws.cell(2, start_col).alignment = CENTER
-    ws.cell(2, start_col+1).alignment = CENTER
-
-    ws.cell(2, start_col).font = BOLD_FONT
-    ws.cell(2, start_col+1).font = BOLD_FONT
-
-    border_box(ws, 2, start_col, 2, start_col+1)
-
-    row = 3
-
-    for rule_name, desc in rules:
-
-        c1 = ws.cell(row, start_col, rule_name)
-        c2 = ws.cell(row, start_col+1, desc)
-
-        c1.fill = DESC_FILL
-        c2.fill = DESC_FILL
-
-        c1.alignment = CENTER
-        c2.alignment = LEFT
-
-        c1.font = BASE_FONT
-        c2.font = BASE_FONT
-
-        border_box(ws, row, start_col, row, start_col+1)
-
-        row += 1
-
-    # =========================
-    # ✅ 의견
-    # =========================
-    opinion_start = row + 1
-    
-    # AI 결과 줄 수 기준 영역 자동 계산
-    line_count = len(str(ai_opinion).split("\n"))
-    opinion_rows = min(
-        max(line_count + 3, 15),
-        40
+        response["body"]
+        .read()
     )
-    
-    merge(
-        ws,
-        opinion_start + 1,
-        start_col,
-        opinion_start + opinion_rows,
-        start_col + 1
+
+    answer = result[
+        "content"
+    ][0]["text"]
+
+    answer_key = (
+
+        "CSPM_RAG/answer/"
+        f"{query_id}.json"
     )
-    
-    t = ws.cell(opinion_start, start_col, "의견")
-    t.fill = DESC_FILL
-    t.alignment = CENTER
-    t.font = BOLD_FONT
-    
-    c = ws.cell(opinion_start + 1, start_col)
-    c.value = ai_opinion
-    c.fill = DESC_FILL
-    c.font = BASE_FONT
-    
-    c.alignment = Alignment(
-        horizontal="left",
-        vertical="center",
-        wrap_text=True
+
+    s3.put_object(
+
+        Bucket=RAG_BUCKET,
+
+        Key=answer_key,
+
+        Body=json.dumps(
+
+            {
+                "queryId":
+                query_id,
+
+                "question":
+                question,
+
+                "answer":
+                answer
+            },
+
+            ensure_ascii=False,
+            indent=2
+        ),
+
+        ContentType=
+        "application/json"
     )
-    
-    for r in range(
-        opinion_start + 1,
-        opinion_start + opinion_rows + 1
-    ):
-        ws.row_dimensions[r].height = 20
-    
-    border_box(
-        ws,
-        opinion_start,
-        start_col,
-        opinion_start + opinion_rows,
-        start_col + 1
-    )
-    
-    # -------------------------
-    # ✅ 열 너비
-    # -------------------------
-    widths = [10, 60, 30, 15, 18, 12, 15, 35, 50, 50, 30, 35]
 
-    for i, w in enumerate(widths, 1):
-        ws.column_dimensions[chr(64+i)].width = w
+    print(answer)
 
-    ws.column_dimensions['O'].width = 40
-    ws.column_dimensions['P'].width = 80
+    return {
 
-# ===============================
-# ✅ 저장
-# ===============================
-wb.save(output)
+        "statusCode": 200,
 
-print("완성")
+        "headers": {
+            "Content-Type":
+            "application/json"
+        },
+
+        "body": json.dumps(
+            {
+
+                "queryId":
+                query_id,
+
+                "question":
+                question,
+
+                "answer":
+                answer,
+
+                "answerFile":
+                answer_key
+            },
+            ensure_ascii=False
+        )
+    } 
+```
+6.S3(index.html)
+사용자 질의를 수신하여 검색 엔진으로 전달하는 역할
+```bash
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta charset="utf-8">
+<title>CJL Cortex AI 분석 에이전트</title>
+<link rel="icon" type="image/svg+xml" href="https://cortexcopilot-ui.s3.ap-northeast-2.amazonaws.com/cortex.svg">
+<style>
+
+html,
+body {
+
+    margin: 0;
+
+    height: 100%;
+
+    overflow: hidden;
+}
+
+.container {
+
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+    height: calc(100vh - 180px);
+
+    display: flex;
+
+    flex-direction: column;
+}
+
+h2 {
+
+    width: 100vw;
+
+    position: relative;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    text-align: center;
+
+    font-size: 32px;
+
+    margin-top: 60px;
+
+    margin-bottom: 30px;
+}
+
+textarea {
+
+    width: 100%;
+
+    min-height: 180px;
+
+    font-size: 18px;
+}
+
+button {
+
+    height: 55px;
+
+    min-width: 90px;
+
+    border-radius: 28px;
+
+    font-size: 16px;
+
+    font-weight: 600;
+}
+
+#question {
+
+    flex: 1;
+
+    height: 55px;
+
+    min-height: 55px;
+
+    max-height: 120px;
+
+    padding: 12px;
+
+    border: 1px solid #d0d7de;
+
+    border-radius: 28px;
+
+    font-size: 16px;
+
+    resize: none;
+}
+
+#chatHistory {
+
+    flex: 1;
+
+    overflow-y: auto;
+
+    padding: 20px;
+
+    padding-bottom: 20px;
+
+    height: calc(100vh - 250px);
+}
+
+.user {
+
+    background: #e8f0ff;
+
+    padding: 12px;
+
+    border-radius: 12px;
+
+    margin-bottom: 12px;
+}
+
+.bot {
+
+    background: #ffffff;
+
+    border: 1px solid #c5cdd8;
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    color: #111111;
+}
+
+.bot-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    margin-bottom: 8px;
+}
+
+.copyBtn {
+
+    background: #f6f8fa;
+
+    border: 1px solid #d0d7de;
+
+    border-radius: 6px;
+
+    padding: 5px 10px;
+}
+
+.copyBtn:hover {
+
+    background: #eef2f7;
+}
+
+pre {
+
+    white-space: pre-wrap;
+    word-wrap: break-word;
+
+    margin: 0;
+
+    font-size: 17px;
+
+    color: #111111;
+
+    font-weight: 500;
+
+    line-height: 1.45;
+}
+
+.answer-content {
+
+    overflow: visible;
+
+    max-height: none;
+
+    font-size: 17px;
+
+    line-height: 1.45;
+}
+
+.inputAreaWrapper {
+
+    position: fixed;
+
+    bottom: 70px;
+
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: 900px;
+
+    max-width: 90%;
+
+    z-index: 1000;
+}
+
+.inputArea {
+
+    display: flex;
+
+    gap: 10px;
+
+    align-items: center;
+}
+
+.notice {
+
+    text-align: center;
+
+    margin-top: 10px;
+
+    font-size: 14px;
+
+    font-weight: 600;
+
+    color: #555;
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+<h2>ONS Cortex AI 분석 에이전트</h2>
+<div id="chatHistory"></div>
+
+<div class="inputAreaWrapper">
+
+    <div class="inputArea">
+
+        <textarea
+            id="question"
+            rows="4"
+            placeholder="질문 입력">
+        </textarea>
+
+        <button onclick="ask()">
+            질문하기
+        </button>
+
+    </div>
+
+    <div class="notice">
+        ※ AI 분석 결과는 실제 Cortex 발생 이벤트를 기반으로 생성되었으며, 일부 내용은 정확하지 않을 수 있습니다.
+    </div>
+</div>
+<script>
+
+function copyAnswer(id) {
+
+    const text =
+        document.getElementById(id)
+        .innerText;
+
+    try {
+
+        navigator.clipboard.writeText(text);
+
+        alert(
+            "복사 완료"
+        );
+
+    } catch {
+
+        const textarea =
+            document.createElement(
+                "textarea"
+            );
+
+        textarea.value = text;
+
+        document.body.appendChild(
+            textarea
+        );
+
+        textarea.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        document.body.removeChild(
+            textarea
+        );
+
+        alert(
+            "답변이 복사되었습니다."
+        );
+    }
+}
+
+async function ask() {
+
+    const question =
+        document.getElementById(
+            "question"
+        ).value.trim();
+
+    if (!question) {
+
+        alert("질문을 입력하세요.");
+        return;
+    }
+
+    const chatHistory =
+        document.getElementById(
+            "chatHistory"
+        );
+
+    const messageId =
+        "msg_" + Date.now();
+
+    const loadingId =
+        "loading_" + Date.now();
+
+    chatHistory.innerHTML += `
+
+        <div id="${messageId}">
+
+            <div class="user">
+
+                <strong>
+                    👤 사용자
+                </strong>
+
+                <pre>${question}</pre>
+
+            </div>
+
+            <div class="bot">
+
+                <div class="bot-header">
+
+                    <strong>
+                        🤖 Cortex Copilot
+                    </strong>
+
+                </div>
+
+                <pre id="${loadingId}">
+분석 중...
+                </pre>
+
+            </div>
+
+        </div>
+    `;
+
+    document.getElementById(
+        "question"
+    ).value = "";
+
+    chatHistory.scrollTop =
+        chatHistory.scrollHeight;
+
+    const loadingTexts = [
+
+        "분석 중.",
+        "분석 중..",
+        "분석 중..."
+    ];
+
+    let loadingIndex = 0;
+
+    const loadingTimer =
+        setInterval(() => {
+
+            const loadingElement =
+                document.getElementById(
+                    loadingId
+                );
+
+            if (loadingElement) {
+
+                loadingElement.innerText =
+                    loadingTexts[
+                        loadingIndex %
+                        loadingTexts.length
+                    ];
+
+                loadingIndex++;
+            }
+
+        }, 500);
+
+    try {
+
+        const startResponse =
+            await fetch(
+                "https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/",
+                {
+
+                    method: "POST",
+
+                    headers: {
+
+                        "Content-Type":
+                        "application/json"
+                    },
+
+                    body: JSON.stringify({
+
+                        question:
+                        question
+                    })
+                }
+            );
+
+        const startData =
+            await startResponse.json();
+
+        const queryId =
+            startData.queryId;
+
+        if (!queryId) {
+
+            clearInterval(
+                loadingTimer
+            );
+
+            document.getElementById(
+                messageId
+            ).innerHTML = `
+
+                <div class="user">
+
+                    <strong>
+                        👤 사용자
+                    </strong>
+
+                    <pre>${question}</pre>
+
+                </div>
+
+                <div class="bot">
+
+                    <strong>
+                        🤖 Cortex Copilot
+                    </strong>
+
+                    <pre>
+답변 생성 실패
+                    </pre>
+
+                </div>
+            `;
+
+            return;
+        }
+
+        const timer =
+            setInterval(
+                async () => {
+
+                    try {
+
+                        const response =
+                            await fetch(
+
+                                `https://iuvqlc2mn9.execute-api.ap-northeast-2.amazonaws.com/answer?queryId=${queryId}`
+                            );
+
+                        const data =
+                            await response.json();
+
+                        if (
+                            data.status ===
+                            "Completed"
+                        ) {
+
+                            clearInterval(
+                                timer
+                            );
+
+                            clearInterval(
+                                loadingTimer
+                            );
+
+                            const answerId =
+                                "answer_" +
+                                Date.now();
+
+                            document.getElementById(
+                                messageId
+                            ).innerHTML = `
+
+                                <div class="user">
+
+                                    <strong>
+                                        👤 사용자
+                                    </strong>
+
+                                    <pre>${question}</pre>
+
+                                </div>
+
+                                <div class="bot">
+
+                                    <div class="bot-header">
+
+                                        <strong>
+                                            🤖 Cortex Copilot
+                                        </strong>
+
+                                        <button
+                                            class="copyBtn"
+                                            onclick="copyAnswer('${answerId}')">
+
+                                            📋 복사
+
+                                        </button>
+
+                                    </div>
+
+                                    <div class="answer-content">
+
+                                        <pre id="${answerId}">
+${data.answer}
+                                        </pre>
+
+                                    </div>
+
+                                </div>
+                            `;
+
+                            chatHistory.scrollTop =
+                                chatHistory.scrollHeight;
+                        }
+
+                    } catch (e) {
+
+                        console.error(e);
+                    }
+
+                },
+
+                5000
+            );
+
+    } catch (error) {
+
+        clearInterval(
+            loadingTimer
+        );
+
+        document.getElementById(
+            messageId
+        ).innerHTML = `
+
+            <div class="user">
+
+                <strong>
+                    👤 사용자
+                </strong>
+
+                <pre>${question}</pre>
+
+            </div>
+
+            <div class="bot">
+
+                <strong>
+                    🤖 Cortex Copilot
+                </strong>
+
+                <pre>
+
+오류 발생:
+
+${error}
+
+                </pre>
+
+            </div>
+        `;
+
+        chatHistory.scrollTop =
+            chatHistory.scrollHeight;
+    }
+}
+
+document.getElementById(
+    "question"
+).addEventListener(
+    "keydown",
+    function(e) {
+
+        if (
+            e.key === "Enter" &&
+            !e.shiftKey
+        ) {
+
+            e.preventDefault();
+
+            ask();
+        }
+    }
+);
+
+</script>
+</div>
+</body>
+</html>
 ```
