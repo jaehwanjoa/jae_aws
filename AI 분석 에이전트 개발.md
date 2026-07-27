@@ -149,9 +149,7 @@ Cloud Cloud 이벤트를 RAG 검색에 사용할 수 있도록 전처리하는 �
 > 분석 결과 출력
 ```
 ## 출력 형식
-```mermaid
-
-```
+<img width="1210" height="1872" alt="image" src="https://github.com/user-attachments/assets/218f340e-9fc2-44ff-beb2-14952052a970" />
 
 ## 참고용. 코드 설명
 1. Indexer Lambda
