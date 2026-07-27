@@ -5,158 +5,1032 @@ Amazon Bedrock, AWS Lambda, S3를 활용하여 보안 이벤트 분석용 AI 에
 RAG(Retrieval-Augmented Generation)를 적용하여 사용자의 질문과 관련된 보안 이벤트를 검색하고, 검색 결과를 AI가 분석 및 권고사항을 제공합니다.<br>
 
 ---
-## 아키텍처 특징
-본 시스템은 AWS Knowledge Base 및 OpenSearch를 사용하지 않았으며, S3와 FAISS 벡터 인덱스를 활용한 경력 RAG 구조로 설계하였습니다.
-1. 장점:
-- OpenSearch 미사용으로 비용 절감<br>
-- AWS 서비스 의종성 최소화<br>
-- 벡터 데이터(S3) 단순 관리<br>
-- Embedding, 검색 로직 커스터마이징 가능
-2. 단점:
-- 대규모 데이터(수십만 건 이상) 처리 시 확장성 한계
-- 기간, 계정, 심각도 기반 복합 검색 기능 제한
-- OpenSearch 기반 실시간 검색 대비 유연성 부족
-
 ## 아키텍처 구조
-1. 보안 이벤트 수집: Cortex Cloud에서 탐지된 보안 이벤트를 S3에 적재합니다.
-2. RAG 데이터 생성: 수집 이벤트를 AI가 검색할 수 있는 형태로 변환합니다.
-3. 사용자 질의 입력/출력: 사용자는 웹 브라우저에서 자연어로 질문을 입력받습니다. ex)어제 탐지된 이슈 알려줘
-4. 보안 이벤트 검색(RAG): 사용자 질문을 벡터로 변환하고, FAISS Index에서 유사한 보안 이벤트를 검색합니다.
-5. AI 분석 및 답변 생성: 검색된 Context를 기반으로 Bedrock(Claude)가 분석을 수행합니다.
-6. 결과 조회: 사용자는 웹 UI에서 분석 결과를 확인합니다.
+```mermaid
+flowchart LR
 
+subgraph Source
+    CORTEX[Cortex Cloud Events]
+end
+
+subgraph KnowledgeBase
+    INDEXER[Indexer Lambda<br/>rag-lambda-jaehwan]
+
+    VECTOR[(S3 Vector Store<br/>FAISS Index)]
+
+    META[(S3 Metadata Store<br/>metadata.json)]
+
+    CONV[(S3 Conversation Store<br/>conversation/*.json)]
+end
+
+subgraph UserLayer
+    USER[User]
+    UI[S3 Static Website<br/>index.html]
+end
+
+subgraph APILayer
+    APIGW[API Gateway]
+
+    CHAT[Front Controller<br/>rag-chat-api]
+
+    ANSWERAPI[Answer API<br/>rag-answer-api]
+end
+
+subgraph SearchLayer
+    QUERY[Search Engine<br/>rag-query-jaehwan]
+
+    CONTEXT[(S3 Context Store<br/>context/queryId.json)]
+end
+
+subgraph EventLayer
+    EVENT[EventBridge]
+end
+
+subgraph AIAnalysis
+    ANSWER[AI Security Analyst<br/>rag-answer-jaehwan]
+
+    VT[VirusTotal]
+
+    WF[WildFire]
+
+    BEDROCK[Amazon Bedrock<br/>Claude]
+
+    ANSWERSTORE[(S3 Answer Store<br/>answer/queryId.json)]
+end
+
+CORTEX --> INDEXER
+
+INDEXER --> VECTOR
+INDEXER --> META
+
+USER --> UI
+UI --> APIGW
+
+APIGW --> CHAT
+
+CHAT --> QUERY
+
+QUERY --> VECTOR
+QUERY --> META
+QUERY --> CONV
+
+QUERY --> CONTEXT
+
+QUERY --> EVENT
+
+EVENT --> ANSWER
+
+ANSWER --> CONTEXT
+
+ANSWER --> VT
+ANSWER --> WF
+ANSWER --> BEDROCK
+
+BEDROCK --> ANSWERSTORE
+
+ANSWERSTORE --> ANSWERAPI
+
+ANSWERAPI --> UI
+
+UI --> USER
+```
+## 아키텍처 리소스별 역할
+1. Indexer Lambda(rag-lambda-jaehwan) 
+Cloud Cloud 이벤트를 RAG 검색에 사용할 수 있도록 전처리하는 역할
 ```bash
-┌────────────────────────────┐
-│  Cortex Cloud 이벤트 발생   │
-└─────────────┬──────────────┘
-              │ Raw Event
-              ▼
-s3://rag-bucket-jaehwan/CSPM/raw/
-│
-├── raw/
-│   └── finding.json
-├── chunk/
-│   └── chunk.json
-├── vector/
-│   ├── cspm.index
-│   └── metadata.json
-├── context/
-│   └── context.json
-└── answer/
-    └── cspm-rag-query-xxxx.json
-              ▲
-              │ Vector Store 저장
-┌─────────────┴──────────────┐
-│ Lambda(Preprocessing)      │
-├────────────────────────────┤
-│ - Raw Event Parsing        │
-│ - 주요 필드 추출            │
-│ - Chunk 생성               │
-└─────────────▲──────────────┘
-              │ S3 Event
-┌─────────────┴──────────────┐
-│      S3 Raw Event          │
-└────────────────────────────┘
-────────────────────────────────────────────
-┌────────────────────────────┐
-│ SageMaker Processing Job   │
-├────────────────────────────┤
-│ - Titan Embedding          │
-│ - Vector 생성             │
-│ - FAISS Index 생성        │
-│ - Metadata 생성           │
-└─────────────┬──────────────┘
-              ▼
-s3://rag-bucket-jaehwan/CSPM/vector/
-│
-├── cspm.index
-└── metadata.json
-────────────────────────────────────────────
-사용자 질의 프로세스
-┌────────────────────────────┐
-│       사용자 질문 입력      │
-└─────────────┬──────────────┘
-              ▼
-S3 정적 웹호스팅
-┌────────────────────────────┐
-│s3://cortexcopilot-ui/      │
-│ (index.html)               │
-└─────────────┬──────────────┘
-              │ 사용자 질문
-              ▼
-┌────────────────────────────┐
-│ API Gateway                │
-└─────────────┬──────────────┘
-              ▼
-┌────────────────────────────┐
-│ rag-chat-api Lambda        │
-├────────────────────────────┤
-│ - 질문 수신                │
-│ - Query 등록              │
-│ - Processing Job 생성      │
-└─────────────┬──────────────┘
-              ▼
-┌────────────────────────────┐
-│ rag-query Lambda           │
-├────────────────────────────┤
-│ - Query Embedding          │
-│ - FAISS Similarity Search  │
-│ - Metadata 매핑           │
-│ - Context 생성            │
-└─────────────┬──────────────┘
-              ▼
-s3://rag-bucket-jaehwan/CSPM/context/
-│
-└── context.json
-              │
-              ▼
-┌────────────────────────────┐
-│ EventBridge                │
-└─────────────┬──────────────┘
-              ▼
-┌────────────────────────────┐
-│ rag-answer Lambda          │
-├────────────────────────────┤
-│ - Context 조회            │
-│ - Claude Prompt 생성      │
-│ - Claude 분석             │
-│ - Answer 생성             │
-└─────────────┬──────────────┘
-              ▼
-s3://rag-bucket-jaehwan/CSPM/answer/
-│
-└── cspm-rag-query-xxxx.json
-              ▲
-              │ Polling
-┌─────────────┴──────────────┐
-│ rag-answer-api Lambda      │
-├────────────────────────────┤
-│ - Answer 조회              │
-│ - Processing 상태 확인     │
-└─────────────┬──────────────┘
-              ▼
-┌────────────────────────────┐
-│ API Gateway                │
-└─────────────┬──────────────┘
-              ▼
-┌────────────────────────────┐
-│ S3 정적 웹사이트            │
-│ Cortex Copilot UI          │
-└────────────────────────────┘
+> Cortex Cloud 이벤트 수집
+> 이벤트 Chunk 분할
+> Titan Embedding 수행
+> Vector, Metadata, FAISS 인덱스 생성
+> Vector Store(S3) 저장
 ```
 
-## 1. 보안 이벤트 알림 설정 및 RAG 프로세싱 적용
-보안 이벤트 적재는 솔루션별로 상이하므로, 되었다는 가정하에 해당 내용은 생략합니다.<br>
-S3 버킷 > 속성 선택 > 이벤트 알림 추가 (해당 작업 시 대상 Lambda에 리소스 기반 정책이 자동 추가됨)
-
+2. Front Controller/Proxy(rag-chat-api)
+사용자 질의를 수신하여 검색 엔진으로 전달하는 역할
 ```bash
-접두사: CSPM_RAG/raw/
-접미사: .json
-이벤트 유형: 모든 객체 생성 이벤트
-대상: Lambda 함수 선택 ex)rag-lambda-jaehwan
+> API Gateway 요청 수신
+> 검색 엔진 호출(rag-query-jaehwan)
+> 검색 결과 반환
+> 향후 사용자 인증, 접근 제어 및 대화 이력 관리 기능 제공 예정
 ```
-람다 역할은 자동으로 생성합니다. 다만 필요 권한은 아래와 같습니다.<br>
 
+3. Search Engin(rag-query-jaehwan)
+사용자 질의에 적합한 Cortex Cloud 데이터를 검색하는 역할
+```bash
+> 사용자 질의 분석
+> 질의 유형 분류
+> FAISS 기반 유사도 검색 수행
+> 관련 Cortex Cloud 이벤트 검색<br><br>
+```
+
+4. Answer API(rag-answer-api)
+사용자에게 최종 분석 결과를 제공하는 역할
+```bash
+> 분석 결과 조회
+> 사용자 요청에 대한 응답 반환
+> Web UI 응답 처리
+```
+
+5. AI Security Analyst(rag-answer-jaehwan)
+검색된 Context를 기반으로 AI 보안 분석을 수행하는 역할
+```bash
+> Context 조회
+> 프롬프트 생성
+> Cortex Cloud CSPM/CWP/CVE 이벤트 분석
+> VirusTotal/WildFire 추가 분석
+> 저장 데이터 기준으로 Amazon Bedroc(Claude) 기반 최종 분석 결과 생성
+```
+
+6. S3(index.html)
+정적 웹호스팅 기반 사용자 인터페이스
+```bash
+> 사용자 질의 입력
+> 분석 결과 조회
+> 분석 결과 출력
+```
+
+## 참고용. 코드 설명
+1. Indexer Lambda
+> Amazon SageMaker, S3에 대한 권한 필요<br>
+> S3는 특정 객체에 이벤트가 쌓일 경우 트리거 필요 ex)CSPM_RAG/raw/<br>
+> 아래는 전체 코드 정보입니다.
+```bash
+import json
+import uuid
+import boto3
+
+s3 = boto3.client("s3")
+sm = boto3.client("sagemaker")
+
+RAG_BUCKET = "rag-bucket-jaehwan"
+
+ROLE_ARN = (
+    "arn:aws:iam::747935822721:role/service-role/AmazonSageMakerServiceCatalogProductsUseRole"
+)
+   
+def build_embedding_text(chunk):
+
+    event_type = chunk.get(
+        "event_type",
+        "UNKNOWN"
+    )
+
+    # ==================================================
+    # Vulnerability (CVE)
+    # ==================================================
+
+    if event_type == "VULNERABILITY":
+
+        return f"""
+Event Type:
+VULNERABILITY
+
+CVE:
+{chunk.get('cve_id', '')}
+
+Title:
+{chunk.get('alert_name', '')}
+
+Description:
+{chunk.get('description', '')}
+
+Severity:
+{chunk.get('severity', '')}
+
+CVSS:
+{chunk.get('cvss_score', '')}
+
+Package:
+{chunk.get('package_purl', '')}
+
+Package Version:
+{chunk.get('package_version', '')}
+
+File Path:
+{chunk.get('file_path', '')}
+
+Has Fix:
+{chunk.get('has_fix', '')}
+
+Fix Versions:
+{chunk.get('fix_versions', '')}
+
+Asset:
+{chunk.get('asset_name', '')}
+
+Region:
+{chunk.get('asset_region', '')}
+
+Account:
+{chunk.get('asset_account', '')}
+
+Status:
+{chunk.get('status', '')}
+""".strip()
+
+    # ==================================================
+    # Posture (CSPM)
+    # ==================================================
+
+    if event_type == "POSTURE":
+
+        return f"""
+Event Type:
+POSTURE
+
+Owner:
+{chunk.get('issue_owner', '')}
+
+Control:
+{chunk.get('alert_name', '')}
+
+Description:
+{chunk.get('description', '')}
+
+Severity:
+{chunk.get('severity', '')}
+
+Asset:
+{chunk.get('asset_name', '')}
+
+Region:
+{chunk.get('asset_region', '')}
+
+Account:
+{chunk.get('asset_account', '')}
+
+Status:
+{chunk.get('status', '')}
+""".strip()
+
+    # ==================================================
+    # Compute (Runtime / Malware)
+    # ==================================================
+
+    if event_type == "COMPUTE":
+
+        return f"""
+Event Type:
+COMPUTE
+
+Title:
+{chunk.get('alert_name', '')}
+
+Description:
+{chunk.get('description', '')}
+
+Severity:
+{chunk.get('severity', '')}
+
+Malware File:
+{chunk.get('malware_file', '')}
+
+File Path:
+{chunk.get('file_path', '')}
+
+SHA256:
+{chunk.get('file_sha256', '')}
+
+Group:
+{chunk.get('group_name', '')}
+
+Owner:
+{chunk.get('owner_name', '')}
+
+Last Modified:
+{chunk.get('last_modified', '')}
+
+VirusTotal:
+{chunk.get('virus_total_link', '')}
+
+Asset:
+{chunk.get('asset_name', '')}
+
+Region:
+{chunk.get('asset_region', '')}
+
+Account:
+{chunk.get('asset_account', '')}
+
+Status:
+{chunk.get('status', '')}
+""".strip()
+
+    # ==================================================
+    # Correlation (XSIAM Correlation Rule)
+    # ==================================================
+
+    if event_type == "CORRELATION":
+
+        return f"""
+Event Type:
+CORRELATION
+
+Title:
+{chunk.get('alert_name', '')}
+
+Description:
+{chunk.get('description', '')}
+
+Severity:
+{chunk.get('severity', '')}
+
+Category:
+{chunk.get('alert_category', '')}
+
+Source:
+{chunk.get('alert_source', '')}
+
+XQL Query:
+{chunk.get('xql_query', '')}
+
+Asset:
+{chunk.get('asset_name', '')}
+
+Region:
+{chunk.get('asset_region', '')}
+
+Account:
+{chunk.get('asset_account', '')}
+
+Status:
+{chunk.get('status', '')}
+""".strip()
+
+    # ==================================================
+    # Fallback
+    # ==================================================
+
+    return f"""
+Event Type:
+{event_type}
+
+Title:
+{chunk.get('alert_name', '')}
+
+Description:
+{chunk.get('description', '')}
+
+Severity:
+{chunk.get('severity', '')}
+
+Asset:
+{chunk.get('asset_name', '')}
+
+Account:
+{chunk.get('asset_account', '')}
+""".strip()
+
+def validate_chunk(chunk):
+
+    required_fields = [
+
+        "event_type",
+        "alert_name",
+        "description",
+        "severity",
+        "asset_name"
+
+    ]
+
+    for field in required_fields:
+
+        value = chunk.get(field)
+
+        if value is None:
+            return False
+
+        if isinstance(value, str):
+
+            if not value.strip():
+                return False
+
+    return True
+
+def lambda_handler(event, context):
+
+    bucket = (
+        event["Records"][0]
+        ["s3"]["bucket"]["name"]
+    )
+
+    key = (
+        event["Records"][0]
+        ["s3"]["object"]["key"]
+    )
+
+    print(f"Bucket : {bucket}")
+    print(f"Key : {key}")
+
+    response = s3.get_object(
+        Bucket=bucket,
+        Key=key
+    )
+
+    content = (
+        response["Body"]
+        .read()
+        .decode("utf-8")
+    )
+
+    source_data = json.loads(content)
+
+    if isinstance(source_data, dict):
+        source_data = [source_data]
+
+    chunk_list = []
+
+    for item in source_data:
+
+        body = item.get("body", item)
+
+        try:
+
+            original_alert = body.get(
+                "original_alert_json",
+                {}
+            )
+
+            nested_alert = original_alert.get(
+                "original_alert_json",
+                {}
+            )
+
+            issues = nested_alert.get(
+                "issues",
+                []
+            )
+
+            alert_source = (
+                body.get("alert_source")
+                or
+                original_alert.get("alert_source")
+            )
+
+            if issues:
+
+                issue = issues[0]
+
+                normalized = issue.get(
+                    "xdm.issue.normalized_fields",
+                    {}
+                )
+
+            else:
+
+                if alert_source != "CORRELATION":
+
+                    print(
+                        f"NO ISSUES : "
+                        f"{body.get('alert_name')}"
+                    )
+
+                    continue
+
+                issue = {}
+
+                normalized = {}
+
+            # ==================================================
+            # Malware Fields
+            # ==================================================
+
+            malware_file = normalized.get(
+                "xdm.file.filename"
+            )
+
+            file_sha256 = normalized.get(
+                "xdm.file.sha256"
+            )
+
+            group_name = normalized.get(
+                "xdm.file.group_name"
+            )
+
+            owner_name = normalized.get(
+                "xdm.file.owner_name"
+            )
+
+            last_modified = normalized.get(
+                "xdm.file.last_modified"
+            )
+
+            virus_total_link = normalized.get(
+                "xdm.malware.virus_total_link"
+            )
+
+            alert_category = original_alert.get(
+                "alert_category"
+            )
+
+            xql_query = original_alert.get(
+                "xql_query"
+            )
+
+            asset = {}
+
+            assets = body.get(
+                "assets",
+                []
+            )
+
+            # 일반 Alert
+            if assets:
+
+                asset = assets[0]
+
+            # Correlation Alert
+            else:
+
+                correlation_events = (
+                    original_alert.get(
+                        "_all_events",
+                        []
+                    )
+                )
+
+                if correlation_events:
+
+                    first_event = (
+                        correlation_events[0]
+                    )
+
+                    asset = {
+
+                        "asset_name":
+                            first_event.get(
+                                "xdm.asset.name"
+                            ),
+
+                        "asset_region":
+                            first_event.get(
+                                "xdm.asset.cloud.region"
+                            ),
+
+                        "asset_account":
+                            first_event.get(
+                                "xdm.asset.realm"
+                            ),
+
+                        "asset_provider":
+                            first_event.get(
+                                "xdm.asset.provider"
+                            ),
+
+                        "asset_first_observed":
+                            first_event.get(
+                                "xdm.asset.first_observed"
+                            ),
+
+                        "asset_last_observed":
+                            first_event.get(
+                                "xdm.asset.last_observed"
+                            )
+                    }
+
+            # ==================================================
+            # Event Classification
+            #
+            # VULNERABILITY : 취약점(CVE)
+            # POSTURE       : CSPM
+            # COMPUTE       : Runtime / Malware
+            # CORRELATION   : XSIAM Correlation Rule
+            # ==================================================
+
+            issue_owner = issue.get(
+                "xdm.issue.owner"
+            )
+
+            cve_id = normalized.get(
+                "xdm.vulnerability.cve_id"
+            )
+
+            alert_source = (
+                body.get("alert_source")
+                or
+                original_alert.get("alert_source")
+            )
+
+            if alert_source == "VULNERABILITY":
+
+                event_type = "VULNERABILITY"
+
+            elif alert_source == "POSTURE":
+
+                event_type = "POSTURE"
+
+            elif alert_source in [
+                "COMPUTE",
+                "COMPUTE_POLICY"
+            ]:
+
+                event_type = "COMPUTE"
+
+            elif alert_source == "CORRELATION":
+
+                event_type = "CORRELATION"
+
+            else:
+
+                event_type = "UNKNOWN"
+
+            chunk = {
+
+                "chunk_id":
+                    str(uuid.uuid4()),
+
+                "event_type":
+                    event_type,
+
+                "issue_owner":
+                    issue_owner,
+
+                "cve_id":
+                    cve_id,
+
+                "alert_name":
+                    body.get(
+                        "alert_name"
+                    ),
+
+                "description":
+                (
+                    issue.get(
+                        "xdm.issue.description"
+                    )
+                    if issue
+                    else
+                    original_alert.get(
+                        "alert_description"
+                    )
+                ),
+
+                "severity":
+                (
+                    issue.get(
+                        "xdm.issue.platform_severity"
+                    )
+                    if issue
+                    else
+                    original_alert.get(
+                        "severity"
+                    )
+                ),
+                
+                "cvss_score":
+                    normalized.get(
+                        "xdm.vulnerability.cvss_score"
+                    ),
+
+                "package_purl":
+                    normalized.get(
+                        "xdm.software_package.purl"
+                    ),
+
+                "package_version":
+                    normalized.get(
+                        "xdm.software_package.version"
+                    ),
+
+                "file_path":
+                    normalized.get(
+                        "xdm.file.path"
+                    ),
+
+                "has_fix":
+                    normalized.get(
+                        "xdm.vulnerability.has_a_fix"
+                    ),
+
+                "fix_versions":
+                    normalized.get(
+                        "xdm.vulnerability.fix_versions"
+                    ),
+
+                "remediation":
+                    issue.get(
+                        "xdm.issue.remediation"
+                    ),
+
+                "observation_time":
+                (
+                    issue.get(
+                        "xdm.issue.observation_time"
+                    )
+                    if issue
+                    else
+                    original_alert.get(
+                        "activity_first_seen_at"
+                    )
+                ),
+
+                "status":
+                (
+                    (
+                        body.get(
+                            "extra_issue_data"
+                        )
+                        or {}
+                    ).get(
+                        "platform_status.progress"
+                    )
+                ),
+
+                "asset_name":
+                    asset.get(
+                        "asset_name"
+                    ),
+
+                "asset_region":
+                    asset.get(
+                        "asset_region"
+                    ),
+
+                "asset_account":
+                    asset.get(
+                        "asset_account"
+                    ),
+
+                "asset_tags":
+                    asset.get(
+                        "asset_tags"
+                    ),
+
+                "alert_source":
+                    alert_source,
+
+                "alert_category":
+                    alert_category,
+
+                "xql_query":
+                    xql_query,
+
+                "malware_file":
+                    malware_file,
+
+                "group_name":
+                    group_name,
+
+                "owner_name":
+                    owner_name,
+
+                "last_modified":
+                    last_modified,
+
+                "file_sha256":
+                    file_sha256,
+
+                "virus_total_link":
+                    virus_total_link,
+
+            }
+
+            if not validate_chunk(chunk):
+
+                print(
+                    f"INVALID CHUNK : "
+                    f"{chunk.get('alert_name')}"
+                )
+
+                continue
+
+            chunk["embedding_text"] = (
+                build_embedding_text(
+                    chunk
+                )
+            )
+
+            chunk_list.append(
+                chunk
+            )
+
+            print(
+                f"CHUNK CREATED : "
+                f"{chunk['event_type']} | "
+                f"{chunk['severity']} | "
+                f"{chunk['asset_name']}"
+            ) 
+
+        except Exception as e:
+
+            print(
+                f"Parse Error : {str(e)}"
+            )
+
+    output_key = (
+        "CSPM_RAG/chunk/"
+        f"{uuid.uuid4()}.json"
+    )
+
+    s3.put_object(
+        Bucket=RAG_BUCKET,
+        Key=output_key,
+        Body=json.dumps(
+            chunk_list,
+            ensure_ascii=False,
+            indent=2
+        ),
+        ContentType="application/json"
+    )
+
+    vulnerability_count = len([
+        c for c in chunk_list
+        if c.get("event_type") == "VULNERABILITY"
+    ])
+
+    posture_count = len([
+        c for c in chunk_list
+        if c.get("event_type") == "POSTURE"
+    ])
+
+    compute_count = len([
+        c for c in chunk_list
+        if c.get("event_type") == "COMPUTE"
+    ])
+
+    correlation_count = len([
+        c for c in chunk_list
+        if c.get("event_type") == "CORRELATION"
+    ])
+
+    unknown_count = len([
+        c for c in chunk_list
+        if c.get("event_type") == "UNKNOWN"
+    ])
+
+    print(
+        f"""
+    ===================
+    Chunk Summary
+    ===================
+    TOTAL         : {len(chunk_list)}
+    VULNERABILITY : {vulnerability_count}
+    POSTURE       : {posture_count}
+    COMPUTE       : {compute_count}
+    CORRELATION   : {correlation_count}
+    UNKNOWN       : {unknown_count}
+    ===================
+    """
+    )
+
+    print(
+        f"Chunk Created : "
+        f"s3://{RAG_BUCKET}/{output_key}"
+    )
+
+    job_name = (
+        "cspm-rag-vector-"
+        f"{uuid.uuid4().hex[:8]}"
+    )
+
+    try:
+
+        response = sm.create_processing_job(
+
+            ProcessingJobName=job_name,
+
+            RoleArn=ROLE_ARN,
+
+            AppSpecification={
+
+                "ImageUri": (
+                    "366743142698.dkr.ecr.ap-northeast-2.amazonaws.com/"
+                    "sagemaker-scikit-learn:1.4-2-cpu-py3"
+                ),
+
+                "ContainerEntrypoint": [
+
+                    "python3",
+
+                    "/opt/ml/processing/code/build_vector.py"
+                ]
+            },
+
+            ProcessingResources={
+
+                "ClusterConfig": {
+
+                    "InstanceCount": 1,
+
+                    "InstanceType":
+                    "ml.t3.medium",
+
+                    "VolumeSizeInGB": 30
+                }
+            },
+
+            ProcessingInputs=[
+                
+                {
+                    "InputName": "chunk",
+
+                    "S3Input": {
+
+                        "S3Uri":
+                        f"s3://{RAG_BUCKET}/{output_key}",
+
+                        "LocalPath":
+                        "/opt/ml/processing/input",
+
+                        "S3DataType":
+                        "S3Prefix",
+
+                        "S3InputMode":
+                        "File"
+                    }
+                },
+
+                {
+                    "InputName": "code",
+
+                    "S3Input": {
+
+                        "S3Uri":
+                        f"s3://{RAG_BUCKET}/CSPM_RAG/code/",
+
+                        "LocalPath":
+                        "/opt/ml/processing/code",
+
+                        "S3DataType":
+                        "S3Prefix",
+
+                        "S3InputMode":
+                        "File"
+                    }
+                },
+                {
+                        "InputName": "existing-vector",
+
+                        "S3Input": {
+
+                            "S3Uri":
+                            f"s3://{RAG_BUCKET}/CSPM_RAG/vector/",
+
+                            "LocalPath":
+                            "/opt/ml/processing/existing",
+
+                            "S3DataType":
+                            "S3Prefix",
+
+                            "S3InputMode":
+                            "File"
+                        }
+                }
+            ],
+
+            ProcessingOutputConfig={
+
+                "Outputs": [
+
+                    {
+
+                        "OutputName":
+                        "vector",
+
+                        "S3Output": {
+
+                            "S3Uri":
+                            f"s3://{RAG_BUCKET}/CSPM_RAG/vector/",
+
+                            "LocalPath":
+                            "/opt/ml/processing/output",
+
+                            "S3UploadMode":
+                            "EndOfJob"
+                        }
+                    }
+                ]
+            }
+        )
+
+        print(
+            f"Processing Job Started : "
+            f"{job_name}"
+        )
+
+        print(
+            response["ProcessingJobArn"]
+        )
+
+    except Exception as e:
+
+        print(
+            f"Processing Job Error : {str(e)}"
+        )
+
+        raise
+
+    return {
+        "statusCode": 200,
+        "chunkCount": len(chunk_list),
+        "processingJob": job_name
+    }
+
+```
+2. Front Controlle Lambda
+> Amazon Bedrock, S3, EventBridge에 대한 권한 필요<br>
+> S3는 특정 객체에 이벤트가 쌓일 경우 트리거 필요 ex)CSPM_RAG/raw/<br>
+> 아래는 전체 코드 정보입니다.
 ```bash
 import json
 import uuid
