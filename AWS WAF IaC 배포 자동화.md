@@ -94,7 +94,7 @@ Terraform 배포 적용: terraform apply (WAF 적용할 유형별 CloudFront/Reg
 ※만약 적용이 안될 경우 Terraform env 파일내 *.ftstate 파일 삭제(리소스 상태 저장 파일로 기존 정보를 가지고 있을수 있음)
 ```
 
-## 참고용. envs/cloudfront/prodection.tf 설명
+## 참고용. envs/cloudfront/privider.tf 설명
 ```bash
 CF용 WAF는 변경사항 없습니다. 만약 regional 서비스라면 리전 정보를 변경하시면 됩니다. ex)aws = aws.singapore
 
@@ -111,14 +111,21 @@ module "cloudfront_waf" {
 }
 
 ```
-## 참고용. envs/cloudfront/provider.tf 설명
+## 참고용. envs/cloudfront/production.tf 설명
 ```bash
 WAF 이벤트가 저장되는 대상 S3 경로를 지정합니다. 
 
-aws_profile = "waf-1"
-waf_name    = "PRD-WAFACL"
-waf_scope   = "CLOUDFRONT"
-waf_s3_arn  = "arn:aws:s3:::<버킷이름>"
+module "cloudfront_waf" {
+  source = "../../modules/waf"
+
+  providers = {
+    aws = aws.seoul
+  }
+
+  waf_name   = var.waf_name
+  waf_scope  = var.waf_scope
+  waf_s3_arn = var.waf_s3_arn
+}
 
 ```
 ## 참고용. envs/cloudfront/terraform.tfvars 설명
