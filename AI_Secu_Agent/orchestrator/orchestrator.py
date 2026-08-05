@@ -10,7 +10,8 @@ class Orchestrator:
     @classmethod
     def process(
         cls,
-        question: str
+        question: str,
+        table_name: str
     ):
 
         request_id = str(
@@ -19,17 +20,21 @@ class Orchestrator:
 
         try:
 
+            # 1. 자연어 분석
             plan = Planner.parse(
                 question
             )
 
+            # 2. Intent 매핑
             mapping = get_mapping(
                 plan["intent"]
             )
 
+            # 3. Athena Query 생성
             query = AthenaQueryGenerator.build(
-                plan,
-                mapping
+                plan=plan,
+                mapping=mapping,
+                table_name=table_name
             )
 
             return {
@@ -37,6 +42,7 @@ class Orchestrator:
                 "status": "success",
                 "plan": plan,
                 "mapping": mapping,
+                "table_name": table_name,
                 "query": query
             }
 
