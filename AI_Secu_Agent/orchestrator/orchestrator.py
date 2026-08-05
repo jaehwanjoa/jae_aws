@@ -1,5 +1,6 @@
 from planner import Planner
 from tool_mapping import get_mapping
+from mcp_executor import MCPExecutor
 from athena_query_generator import (
     AthenaQueryGenerator
 )
@@ -38,33 +39,39 @@ class Orchestrator:
                 plan["intent"]
             )
 
-            # 3. SQL 생성
+            # 3. 쿼리 생성
             query = AthenaQueryGenerator.build(
                 plan=plan,
                 mapping=mapping,
                 table_name=table_name
             )
 
+            # 4. MCP 실행
+            athena_result = MCPExecutor.execute(
+                query=query
+            )
+
             return {
                 "request_id": request_id,
                 "status": "success",
-
+            
                 "intent":
                     plan["intent"],
-
+            
                 "query_type":
-                    mapping[
-                        "query_type"
-                    ],
-
+                    mapping["query_type"],
+            
                 "table_name":
                     table_name,
-
+            
                 "plan":
                     plan,
-
+            
                 "query":
-                    query
+                    query,
+            
+                "athena_result":
+                    athena_result
             }
 
         except Exception as e:
