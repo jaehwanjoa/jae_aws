@@ -10,7 +10,6 @@ KST = ZoneInfo("Asia/Seoul")
 class Planner:
 
     COUNTRY_MAP = {
-
         # Asia
         "한국": "KR",
         "대한민국": "KR",
@@ -44,8 +43,20 @@ class Planner:
         "호주": "AU"
     }
 
+    RULE_KEYWORDS = {
+        "sql injection": "SQL Injection",
+        "sqli": "SQL Injection",
+        "xss": "XSS",
+        "cross site scripting": "XSS",
+        "path traversal": "Path Traversal",
+        "directory traversal": "Path Traversal",
+        "command injection": "Command Injection",
+        "bad bot": "Bad Bot",
+        "scanner": "Scanner"
+    }
+
     @classmethod
-    def parse(cls, question:str):
+    def parse(cls, question: str):
 
         filters = {}
 
@@ -58,12 +69,30 @@ class Planner:
         )
 
         return {
-            "intent": cls.detect_intent(filters),
+            "intent": cls.detect_intent(
+                question,
+                filters
+            ),
             "filters": filters
         }
 
     @classmethod
-    def detect_intent(cls, filters):
+    def detect_intent(
+        cls,
+        question,
+        filters
+    ):
+
+        lower_question = question.lower()
+
+        if "top" in lower_question and "uri" in lower_question:
+            return "top_uri"
+
+        if "top" in lower_question and "ip" in lower_question:
+            return "top_ip"
+
+        if "트렌드" in question:
+            return "attack_trend"
 
         if filters.get("uri"):
             return "uri_analysis"
@@ -71,19 +100,28 @@ class Planner:
         if filters.get("source_ip"):
             return "ip_analysis"
 
-        if filters.get("rule_pattern"):
+        if filters.get("host_domain"):
+            return "host_analysis"
+
+        if (
+            filters.get("rule_name")
+            or filters.get("rule_pattern")
+        ):
             return "rule_analysis"
 
         return "generic_analysis"
 
     @classmethod
-    def extract_entities(cls, question):
+    def extract_entities(
+        cls,
+        question
+    ):
 
         result = {}
 
         # URI
         uri_match = re.search(
-            r"(/\S+)",
+            r"(/[A-Za-z0-9_\-./?=&%]+)",
             question
         )
 
@@ -99,6 +137,22 @@ class Planner:
         if ip_match:
             result["source_ip"] = ip_match.group(0)
 
+        # Host Domain
+        host_match = re.search(
+            r"\b([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b",
+            question
+        )
+
+        if host_match:
+
+            value = host_match.group(1)
+
+            if not re.match(
+                r"^(?:\d{1,3}\.){3}\d{1,3}$",
+                value
+            ):
+                result["host_domain"] = value
+
         # Country Name
         for country_name, code in cls.COUNTRY_MAP.items():
 
@@ -108,7 +162,7 @@ class Planner:
 
         # Country Code
         country_match = re.search(
-            r"\b(KR|CN|JP|US|RU|TW|HK|SG|IN|VN|TH|MY|ID|CA|GB|DE|FR|IT|ES|NL|BR|AU)\b",
+            r"\b(KR|CN|JP|US|RU|TW|HK|SG|IN|VN|TH|MY|ID|CA|MX|GB|DE|FR|IT|ES|NL|BR|AU)\b",
             question.upper()
         )
 
@@ -118,33 +172,44 @@ class Planner:
             )
 
         # Action
-        if "차단" in question or "block" in question.lower():
+        if (
+            "차단" in question
+            or "block" in question.lower()
+        ):
             result["action"] = "BLOCK"
 
-        elif "허용" in question or "allow" in question.lower():
+        elif (
+            "허용" in question
+            or "allow" in question.lower()
+        ):
             result["action"] = "ALLOW"
 
-        # Rule Pattern
-        rule_keywords = [
-            "SQL Injection",
-            "SQLi",
-            "XSS",
-            "Path Traversal",
-            "Command Injection",
-            "Bad Bot"
-        ]
+        # AWS Managed Rule
+        rule_name_match = re.search(
+            r"(AWSManagedRules[A-Za-z0-9]+)",
+            question
+        )
 
-        for keyword in rule_keywords:
+        if rule_name_match:
+            result["rule_name"] = (
+                rule_name_match.group(1)
+            )
 
-            if keyword.lower() in question.lower():
+        # Generic Rule Pattern
+        for keyword, value in cls.RULE_KEYWORDS.items():
 
-                result["rule_pattern"] = keyword
+            if keyword in question.lower():
+
+                result["rule_pattern"] = value
                 break
 
         return result
 
     @classmethod
-    def extract_time(cls, question):
+    def extract_time(
+        cls,
+        question
+    ):
 
         now = datetime.now(KST)
 
@@ -185,30 +250,9 @@ class Planner:
                 microsecond=0
             )
 
+            end_time = now
+
         # 어제
         elif "어제" in question:
 
-            yesterday = now - timedelta(days=1)
-
-            start_time = yesterday.replace(
-                hour=0,
-                minute=0,
-                second=0,
-                microsecond=0
-            )
-
-            end_time = yesterday.replace(
-                hour=23,
-                minute=59,
-                second=59,
-                microsecond=999999
-            )
-
-        return {
-            "start_time": start_time.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            ),
-            "end_time": end_time.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-        }
+            yesterday
