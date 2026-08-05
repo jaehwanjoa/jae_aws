@@ -2,6 +2,8 @@ from planner import Planner
 from tool_mapping import get_mapping
 from athena_query_generator import AthenaQueryGenerator
 
+import uuid
+
 
 class Orchestrator:
 
@@ -11,23 +13,37 @@ class Orchestrator:
         question: str
     ):
 
-        # 1. 자연어 분석
-        plan = Planner.parse(
-            question
+        request_id = str(
+            uuid.uuid4()
         )
 
-        # 2. Intent 매핑
-        mapping = get_mapping(
-            plan["intent"]
-        )
+        try:
 
-        # 3. Athena SQL 생성
-        query = AthenaQueryGenerator.build(
-            plan
-        )
+            plan = Planner.parse(
+                question
+            )
 
-        return {
-            "plan": plan,
-            "mapping": mapping,
-            "query": query
-        }
+            mapping = get_mapping(
+                plan["intent"]
+            )
+
+            query = AthenaQueryGenerator.build(
+                plan,
+                mapping
+            )
+
+            return {
+                "request_id": request_id,
+                "status": "success",
+                "plan": plan,
+                "mapping": mapping,
+                "query": query
+            }
+
+        except Exception as e:
+
+            return {
+                "request_id": request_id,
+                "status": "error",
+                "message": str(e)
+            }
