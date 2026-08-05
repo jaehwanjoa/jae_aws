@@ -73,7 +73,8 @@ class Planner:
                 question,
                 filters
             ),
-            "filters": filters
+            "filters": filters,
+            "original_question": question
         }
 
     @classmethod
@@ -85,26 +86,53 @@ class Planner:
 
         lower_question = question.lower()
 
-        if "top" in lower_question and "uri" in lower_question:
+        # TOP URI
+        if (
+            ("uri" in lower_question)
+            and (
+                "top" in lower_question
+                or "상위" in question
+                or "많이" in question
+                or "가장" in question
+            )
+        ):
             return "top_uri"
 
-        if "top" in lower_question and "ip" in lower_question:
+        # TOP IP
+        if (
+            ("ip" in lower_question)
+            and (
+                "top" in lower_question
+                or "상위" in question
+                or "많이" in question
+                or "가장" in question
+            )
+        ):
             return "top_ip"
 
-        if "트렌드" in question:
+        # Trend
+        if (
+            "트렌드" in question
+            or "추이" in question
+        ):
             return "attack_trend"
 
+        # URI
         if filters.get("uri"):
             return "uri_analysis"
 
+        # Source IP
         if filters.get("source_ip"):
             return "ip_analysis"
 
+        # Host
         if filters.get("host_domain"):
             return "host_analysis"
 
+        # Rule
         if (
-            filters.get("rule_name")
+            filters.get("rule_group")
+            or filters.get("rule_name")
             or filters.get("rule_pattern")
         ):
             return "rule_analysis"
@@ -119,9 +147,11 @@ class Planner:
 
         result = {}
 
+        lower_question = question.lower()
+
         # URI
         uri_match = re.search(
-            r"(/[A-Za-z0-9_\-./?=&%]+)",
+            r"(/[^\s]+)",
             question
         )
 
@@ -147,11 +177,22 @@ class Planner:
 
             value = host_match.group(1)
 
-            if not re.match(
-                r"^(?:\d{1,3}\.){3}\d{1,3}$",
+            if not re.fullmatch(
+                r"(?:\d{1,3}\.){3}\d{1,3}",
                 value
             ):
                 result["host_domain"] = value
+
+        # Query String
+        query_match = re.search(
+            r"([a-zA-Z0-9_\-]+\s*=\s*[^ ]+)",
+            question
+        )
+
+        if query_match:
+            result["query_string"] = (
+                query_match.group(1)
+            )
 
         # Country Name
         for country_name, code in cls.COUNTRY_MAP.items():
@@ -174,19 +215,39 @@ class Planner:
         # Action
         if (
             "차단" in question
-            or "block" in question.lower()
+            or "block" in lower_question
         ):
             result["action"] = "BLOCK"
 
         elif (
             "허용" in question
-            or "allow" in question.lower()
+            or "allow" in lower_question
         ):
             result["action"] = "ALLOW"
 
-        # AWS Managed Rule
+        elif "count" in lower_question:
+            result["action"] = "COUNT"
+
+        elif "captcha" in lower_question:
+            result["action"] = "CAPTCHA"
+
+        elif "challenge" in lower_question:
+            result["action"] = "CHALLENGE"
+
+        # Rule Group
+        rule_group_match = re.search(
+            r"(AWSManagedRules[\w\-]+)",
+            question
+        )
+
+        if rule_group_match:
+            result["rule_group"] = (
+                rule_group_match.group(1)
+            )
+
+        # Rule Name
         rule_name_match = re.search(
-            r"(AWSManagedRules[A-Za-z0-9]+)",
+            r"\b([A-Za-z0-9_]+_(BODY|HEADER|COOKIE|URIPATH|QUERYARGUMENTS))\b",
             question
         )
 
@@ -195,11 +256,10 @@ class Planner:
                 rule_name_match.group(1)
             )
 
-        # Generic Rule Pattern
+        # Rule Pattern
         for keyword, value in cls.RULE_KEYWORDS.items():
 
-            if keyword in question.lower():
-
+            if keyword in lower_question:
                 result["rule_pattern"] = value
                 break
 
@@ -255,4 +315,95 @@ class Planner:
         # 어제
         elif "어제" in question:
 
-            yesterday
+            yesterday = now - timedelta(days=1)
+
+            start_time = yesterday.replace(
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+            end_time = yesterday.replace(
+                hour=23,
+                minute=59,
+                second=59,
+                microsecond=999999
+            )
+
+        # 이번주
+        elif "이번주" in question:
+
+            start_time = (
+                now - timedelta(days=now.weekday())
+            ).replace(
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+        # 지난주
+        elif "지난주" in question:
+
+            this_week_start = (
+                now - timedelta(days=now.weekday())
+            ).replace(
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+            start_time = (
+                this_week_start - timedelta(days=7)
+            )
+
+            end_time = (
+                this_week_start - timedelta(seconds=1)
+            )
+
+        # 이번달
+        elif "이번달" in question:
+
+            start_time = now.replace(
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+        # 지난달
+        elif "지난달" in question:
+
+            first_day_this_month = now.replace(
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+            end_time = (
+                first_day_this_month
+                - timedelta(seconds=1)
+            )
+
+            start_time = end_time.replace(
+                day=1,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0
+            )
+
+        return {
+            "start_time": start_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            "end_time": end_time.strftime(
+                "%Y-%m-%d %H:%M:%S"
+            ),
+            "timezone": "Asia/Seoul"
+        }
