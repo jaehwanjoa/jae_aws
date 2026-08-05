@@ -47,8 +47,10 @@ class Orchestrator:
             )
 
             # 4. MCP 실행
-            athena_result = MCPExecutor.execute(
-                query=query
+            athena_result = (
+                MCPExecutor.execute_athena(
+                    query=query
+                )
             )
 
             return {
