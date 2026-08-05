@@ -10,7 +10,6 @@ KST = ZoneInfo("Asia/Seoul")
 class Planner:
 
     COUNTRY_MAP = {
-        # Asia
         "한국": "KR",
         "대한민국": "KR",
         "중국": "CN",
@@ -23,21 +22,15 @@ class Planner:
         "태국": "TH",
         "말레이시아": "MY",
         "인도네시아": "ID",
-
-        # North America
         "미국": "US",
         "캐나다": "CA",
         "멕시코": "MX",
-
-        # Europe
         "영국": "GB",
         "독일": "DE",
         "프랑스": "FR",
         "이탈리아": "IT",
         "스페인": "ES",
         "네덜란드": "NL",
-
-        # Others
         "러시아": "RU",
         "브라질": "BR",
         "호주": "AU"
@@ -68,11 +61,13 @@ class Planner:
             cls.extract_entities(question)
         )
 
+        intent = cls.detect_intent(
+            question,
+            filters
+        )
+
         return {
-            "intent": cls.detect_intent(
-                question,
-                filters
-            ),
+            "intent": intent,
             "filters": filters,
             "original_question": question
         }
@@ -86,9 +81,12 @@ class Planner:
 
         lower_question = question.lower()
 
-        # TOP URI
+        # Top URI
         if (
-            ("uri" in lower_question)
+            (
+                "uri" in lower_question
+                or "url" in lower_question
+            )
             and (
                 "top" in lower_question
                 or "상위" in question
@@ -98,9 +96,9 @@ class Planner:
         ):
             return "top_uri"
 
-        # TOP IP
+        # Top IP
         if (
-            ("ip" in lower_question)
+            "ip" in lower_question
             and (
                 "top" in lower_question
                 or "상위" in question
@@ -121,7 +119,7 @@ class Planner:
         if filters.get("uri"):
             return "uri_analysis"
 
-        # Source IP
+        # IP
         if filters.get("source_ip"):
             return "ip_analysis"
 
@@ -132,7 +130,6 @@ class Planner:
         # Rule
         if (
             filters.get("rule_group")
-            or filters.get("rule_name")
             or filters.get("rule_pattern")
         ):
             return "rule_analysis"
@@ -185,7 +182,7 @@ class Planner:
 
         # Query String
         query_match = re.search(
-            r"([a-zA-Z0-9_\-]+\s*=\s*[^ ]+)",
+            r"([a-zA-Z0-9_-]+=[^\s]+)",
             question
         )
 
@@ -198,6 +195,7 @@ class Planner:
         for country_name, code in cls.COUNTRY_MAP.items():
 
             if country_name in question:
+
                 result["source_country"] = code
                 break
 
@@ -241,25 +239,16 @@ class Planner:
         )
 
         if rule_group_match:
+
             result["rule_group"] = (
                 rule_group_match.group(1)
-            )
-
-        # Rule Name
-        rule_name_match = re.search(
-            r"\b([A-Za-z0-9_]+_(BODY|HEADER|COOKIE|URIPATH|QUERYARGUMENTS))\b",
-            question
-        )
-
-        if rule_name_match:
-            result["rule_name"] = (
-                rule_name_match.group(1)
             )
 
         # Rule Pattern
         for keyword, value in cls.RULE_KEYWORDS.items():
 
             if keyword in lower_question:
+
                 result["rule_pattern"] = value
                 break
 
@@ -276,7 +265,6 @@ class Planner:
         start_time = now - timedelta(days=1)
         end_time = now
 
-        # 최근 N시간
         hour_match = re.search(
             r"최근\s*(\d+)\s*시간",
             question
@@ -288,7 +276,6 @@ class Planner:
                 hours=int(hour_match.group(1))
             )
 
-        # 최근 N일
         day_match = re.search(
             r"최근\s*(\d+)\s*일",
             question
@@ -300,7 +287,6 @@ class Planner:
                 days=int(day_match.group(1))
             )
 
-        # 오늘
         if "오늘" in question:
 
             start_time = now.replace(
@@ -312,7 +298,6 @@ class Planner:
 
             end_time = now
 
-        # 어제
         elif "어제" in question:
 
             yesterday = now - timedelta(days=1)
@@ -331,7 +316,6 @@ class Planner:
                 microsecond=999999
             )
 
-        # 이번주
         elif "이번주" in question:
 
             start_time = (
@@ -343,7 +327,6 @@ class Planner:
                 microsecond=0
             )
 
-        # 지난주
         elif "지난주" in question:
 
             this_week_start = (
@@ -356,14 +339,15 @@ class Planner:
             )
 
             start_time = (
-                this_week_start - timedelta(days=7)
+                this_week_start
+                - timedelta(days=7)
             )
 
             end_time = (
-                this_week_start - timedelta(seconds=1)
+                this_week_start
+                - timedelta(seconds=1)
             )
 
-        # 이번달
         elif "이번달" in question:
 
             start_time = now.replace(
@@ -374,7 +358,6 @@ class Planner:
                 microsecond=0
             )
 
-        # 지난달
         elif "지난달" in question:
 
             first_day_this_month = now.replace(
