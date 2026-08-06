@@ -5,7 +5,7 @@ from orchestrator.athena_query_generator import (
     AthenaQueryGenerator
 )
 
-from mcp.mcp_executor import MCPExecutor
+from mcp_tools.mcp_executor import MCPExecutor
 
 import uuid
 
