@@ -44,7 +44,7 @@ class MCPExecutor:
             ][
                 "State"
             ]
-
+            
             if state == "SUCCEEDED":
                 break
 
@@ -52,8 +52,18 @@ class MCPExecutor:
                 "FAILED",
                 "CANCELLED"
             ]:
+            
+                reason = status[
+                    "QueryExecution"
+                ][
+                    "Status"
+                ].get(
+                    "StateChangeReason",
+                    "Unknown"
+                )
+            
                 raise Exception(
-                    f"Athena Query {state}"
+                    f"Athena Query {state}: {reason}"
                 )
 
             time.sleep(2)
