@@ -1,5 +1,12 @@
-import boto3
+import asyncio
+import json
 import time
+
+from mcp import ClientSession
+from mcp.client.stdio import (
+    stdio_client,
+    StdioServerParameters,
+)
 
 
 class MCPExecutor:
@@ -9,67 +16,81 @@ class MCPExecutor:
         cls,
         query: str
     ):
-
-        athena = boto3.client(
-            "athena",
-            region_name="ap-northeast-2"
+        return asyncio.run(
+            cls._execute_athena(query)
         )
-        
-        response = athena.start_query_execution(
-            QueryString=query,
-            QueryExecutionContext={
-                "Database": "jaehwan-aws-waf"
-            },
-            WorkGroup="jaehwan",
-            ResultConfiguration={
-                "OutputLocation":
-                    "s3://202040710-jaehwan-test/athena-results/"
+
+    @classmethod
+    async def _execute_athena(
+        cls,
+        query: str
+    ):
+
+        server_params = StdioServerParameters(
+            command="uvx",
+            args=[
+                "awslabs.aws-dataprocessing-mcp-server@latest",
+                "--allow-write",
+                "--allow-sensitive-data-access"
+            ],
+            env={
+                "AWS_REGION": "ap-northeast-2"
             }
         )
-        
-        query_id = response[
-            "QueryExecutionId"
-        ]
 
-        while True:
+        async with stdio_client(server_params) as (
+            read_stream,
+            write_stream
+        ):
 
-            status = athena.get_query_execution(
-                QueryExecutionId=query_id
-            )
+            async with ClientSession(
+                read_stream,
+                write_stream
+            ) as session:
 
-            state = status[
-                "QueryExecution"
-            ][
-                "Status"
-            ][
-                "State"
-            ]
-            
-            if state == "SUCCEEDED":
-                break
+                await session.initialize()
 
-            if state in [
-                "FAILED",
-                "CANCELLED"
-            ]:
-            
-                reason = status[
-                    "QueryExecution"
-                ][
-                    "Status"
-                ].get(
-                    "StateChangeReason",
-                    "Unknown"
-                )
-            
-                raise Exception(
-                    f"Athena Query {state}: {reason}"
+                start_result = await session.call_tool(
+                    "manage_aws_athena_query_executions",
+                    {
+                        "operation": "start-query-execution",
+                        "query_string": query,
+                        "query_execution_context": {
+                            "Database": "jaehwan-aws-waf"
+                        },
+                        "work_group": "jaehwan"
+                    }
                 )
 
-            time.sleep(2)
+                if start_result.is_error:
+                    raise Exception(str(start_result))
 
-        results = athena.get_query_results(
-            QueryExecutionId=query_id
-        )
+                query_execution_id = None
 
-        return results
+                for content in start_result.content:
+
+                    if hasattr(content, "text"):
+
+                        try:
+                            data = json.loads(content.text)
+
+                            if "query_execution_id" in data:
+                                query_execution_id = data[
+                                    "query_execution_id"
+                                ]
+                                break
+
+                        except Exception:
+                            pass
+
+                if not query_execution_id:
+                    raise Exception(
+                        f"QueryExecutionId not found: {start_result}"
+                    )
+
+                while True:
+
+                    status_result = await session.call_tool(
+                        "manage_aws_athena_query_executions",
+                        {
+                        
