@@ -1,6 +1,7 @@
 from planner import Planner
 from tool_mapping import get_mapping
 from mcp_executor import MCPExecutor
+from table_catalog import TABLE_CATALOG
 from athena_query_generator import (
     AthenaQueryGenerator
 )
@@ -14,7 +15,7 @@ class Orchestrator:
     def process(
         cls,
         question: str,
-        table_name: str
+        customer: str
     ):
 
         request_id = str(
@@ -22,13 +23,25 @@ class Orchestrator:
         )
 
         try:
-
-            if not table_name:
-
+            
+            table_meta = TABLE_CATALOG.get(
+                customer
+            )
+            
+            if not table_meta:
+            
                 raise ValueError(
-                    "table_name is required"
+                    f"Unknown customer: {customer}"
                 )
-
+            
+            database = table_meta[
+                "database"
+            ]
+            
+            table_name = table_meta[
+                "table_name"
+            ]            
+ 
             # 1. Planner
             plan = Planner.parse(
                 question
@@ -52,19 +65,25 @@ class Orchestrator:
                     query=query
                 )
             )
-
+            
             return {
                 "request_id": request_id,
                 "status": "success",
+            
+                "customer":
+                    customer,
+            
+                "database":
+                    database,
+            
+                "table_name":
+                    table_name,
             
                 "intent":
                     plan["intent"],
             
                 "query_type":
                     mapping["query_type"],
-            
-                "table_name":
-                    table_name,
             
                 "plan":
                     plan,
