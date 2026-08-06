@@ -14,18 +14,19 @@ class MCPExecutor:
             "athena",
             region_name="ap-northeast-2"
         )
-
+        
         response = athena.start_query_execution(
             QueryString=query,
             QueryExecutionContext={
                 "Database": "jaehwan-aws-waf"
             },
+            WorkGroup="jaehwan",
             ResultConfiguration={
                 "OutputLocation":
-                    "s3://202040710-jaehwan-test/"
+                    "s3://202040710-jaehwan-test/athena-results/"
             }
         )
-
+        
         query_id = response[
             "QueryExecutionId"
         ]
