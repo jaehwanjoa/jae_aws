@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 
 from mcp import ClientSession
 from mcp.client.stdio import (
@@ -25,16 +26,17 @@ class MCPExecutor:
         query: str
     ):
 
+        env = dict(os.environ)
+
+        env["AWS_REGION"] = "ap-northeast-2"
+
         server_params = StdioServerParameters(
-            command="uvx",
+            command="awslabs.aws-dataprocessing-mcp-server",
             args=[
-                "awslabs.aws-dataprocessing-mcp-server@latest",
                 "--allow-write",
                 "--allow-sensitive-data-access"
             ],
-            env={
-                "AWS_REGION": "ap-northeast-2"
-            }
+            env=env
         )
 
         async with stdio_client(server_params) as (
@@ -61,7 +63,9 @@ class MCPExecutor:
                     }
                 )
 
-                if start_result.is_error:
+                print("START_RESULT =", start_result)
+
+                if start_result.isError:
                     raise Exception(
                         str(start_result)
                     )
@@ -90,6 +94,8 @@ class MCPExecutor:
                     except Exception:
                         pass
 
+                print("QUERY_EXECUTION_ID =", query_execution_id)
+
                 if not query_execution_id:
                     raise Exception(
                         f"QueryExecutionId not found: {start_result}"
@@ -109,7 +115,7 @@ class MCPExecutor:
                         )
                     )
 
-                    if status_result.is_error:
+                    if status_result.isError:
                         raise Exception(
                             str(status_result)
                         )
@@ -178,9 +184,16 @@ class MCPExecutor:
                     }
                 )
 
-                if result.is_error:
+                if result.isError:
                     raise Exception(
                         str(result)
                     )
 
-                return result
+                return {
+                    "isError": result.isError,
+                    "content": [
+                        item.text
+                        for item in result.content
+                        if hasattr(item, "text")
+                    ]
+                }

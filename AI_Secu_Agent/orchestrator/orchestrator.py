@@ -98,6 +98,13 @@ class Orchestrator:
 
         except Exception as e:
 
+            import traceback
+
+            print("ERROR_TYPE =", type(e))
+            print("ERROR_REPR =", repr(e))
+            print("TRACEBACK =")
+            print(traceback.format_exc())
+
             return {
                 "request_id": request_id,
                 "status": "error",

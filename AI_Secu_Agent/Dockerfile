@@ -4,6 +4,6 @@ COPY . ${LAMBDA_TASK_ROOT}
 
 RUN pip install -r requirements.txt
 
-RUN pip install uv
+RUN pip install awslabs.aws-dataprocessing-mcp-server
 
 CMD ["lambda_function.lambda_handler"]

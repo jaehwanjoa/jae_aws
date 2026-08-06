@@ -1,0 +1,15 @@
+2026-08-06T10:29:25.688000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf START RequestId: ff3f0a5d-0c8e-48a6-b73c-e547b1345ce5 Version: $LATEST
+2026-08-06T10:29:25.699000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf END RequestId: ff3f0a5d-0c8e-48a6-b73c-e547b1345ce5
+2026-08-06T10:29:25.699000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf REPORT RequestId: ff3f0a5d-0c8e-48a6-b73c-e547b1345ce5	Duration: 10.51 ms	Billed Duration: 2885 ms	Memory Size: 1024 MB	Max Memory Used: 110 MB	Init Duration: 2874.47 ms
+2026-08-06T10:33:38.448000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf START RequestId: 5b11d9f2-1bf0-4fda-a4f0-20d2d4769eb4 Version: $LATEST
+2026-08-06T10:33:38.451000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf END RequestId: 5b11d9f2-1bf0-4fda-a4f0-20d2d4769eb4
+2026-08-06T10:33:38.451000+00:00 2026/08/06/[$LATEST]3d67d4ab8178451da4570c0643bb38cf REPORT RequestId: 5b11d9f2-1bf0-4fda-a4f0-20d2d4769eb4	Duration: 3.33 ms	Billed Duration: 4 ms	Memory Size: 1024 MB	Max Memory Used: 110 MB
+2026-08-06T10:34:31.510000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 START RequestId: 9f1141ce-b021-4ab3-9c44-c21571fdb3a3 Version: $LATEST
+2026-08-06T10:34:33.297000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 2026-08-06 10:34:33.297 | INFO     | awslabs.aws_dataprocessing_mcp_server.server:main:327 - Starting Data Processing MCP Server
+2026-08-06T10:34:34.241000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 [08/06/26 10:34:34] INFO     Processing request of type            server.py:733
+2026-08-06T10:34:34.241000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 CallToolRequest
+2026-08-06T10:34:34.241000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 2026-08-06 10:34:34.241 | INFO     | awslabs.aws_dataprocessing_mcp_server.utils.logging_helper:log_with_request_id:49 - [request_id=1] Athena Query Handler - Tool: manage_aws_athena_queries - Operation: start-query-execution
+2026-08-06T10:34:34.255000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 2026-08-06 10:34:34.255 | ERROR    | awslabs.aws_dataprocessing_mcp_server.utils.logging_helper:log_with_request_id:53 - [request_id=1] Error in manage_aws_athena_queries: Unable to locate credentials
+2026-08-06T10:34:34.257000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 <mcp.server.fastmcp.server.FastMCP object at 0x7facaf10e270>
+2026-08-06T10:34:34.856000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 END RequestId: 9f1141ce-b021-4ab3-9c44-c21571fdb3a3
+2026-08-06T10:34:34.856000+00:00 2026/08/06/[$LATEST]090f44be71c149c8a8b4af2309aa57d7 REPORT RequestId: 9f1141ce-b021-4ab3-9c44-c21571fdb3a3	Duration: 3345.50 ms	Billed Duration: 6286 ms	Memory Size: 1024 MB	Max Memory Used: 203 MB	Init Duration: 2939.54 ms
