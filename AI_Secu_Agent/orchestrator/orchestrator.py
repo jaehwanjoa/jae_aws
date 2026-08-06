@@ -1,10 +1,11 @@
-from planner import Planner
-from tool_mapping import get_mapping
-from mcp_executor import MCPExecutor
-from table_catalog import TABLE_CATALOG
-from athena_query_generator import (
+from orchestrator.planner import Planner
+from orchestrator.tool_mapping import get_mapping
+from orchestrator.table_catalog import TABLE_CATALOG
+from orchestrator.athena_query_generator import (
     AthenaQueryGenerator
 )
+
+from mcp.mcp_executor import MCPExecutor
 
 import uuid
 
