@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 
 from mcp import ClientSession
 from mcp.client.stdio import (
@@ -63,25 +62,33 @@ class MCPExecutor:
                 )
 
                 if start_result.is_error:
-                    raise Exception(str(start_result))
+                    raise Exception(
+                        str(start_result)
+                    )
 
                 query_execution_id = None
 
                 for content in start_result.content:
 
-                    if hasattr(content, "text"):
+                    if not hasattr(content, "text"):
+                        continue
 
-                        try:
-                            data = json.loads(content.text)
+                    try:
+                        data = json.loads(
+                            content.text
+                        )
 
-                            if "query_execution_id" in data:
-                                query_execution_id = data[
-                                    "query_execution_id"
-                                ]
-                                break
+                        if (
+                            "query_execution_id"
+                            in data
+                        ):
+                            query_execution_id = data[
+                                "query_execution_id"
+                            ]
+                            break
 
-                        except Exception:
-                            pass
+                    except Exception:
+                        pass
 
                 if not query_execution_id:
                     raise Exception(
@@ -90,7 +97,90 @@ class MCPExecutor:
 
                 while True:
 
-                    status_result = await session.call_tool(
-                        "manage_aws_athena_query_executions",
-                        {
-                        
+                    status_result = (
+                        await session.call_tool(
+                            "manage_aws_athena_query_executions",
+                            {
+                                "operation":
+                                    "get-query-execution",
+                                "query_execution_id":
+                                    query_execution_id
+                            }
+                        )
+                    )
+
+                    if status_result.is_error:
+                        raise Exception(
+                            str(status_result)
+                        )
+
+                    state = None
+                    reason = None
+
+                    for content in status_result.content:
+
+                        if not hasattr(
+                            content,
+                            "text"
+                        ):
+                            continue
+
+                        try:
+                            data = json.loads(
+                                content.text
+                            )
+
+                            query_execution = (
+                                data.get(
+                                    "query_execution",
+                                    {}
+                                )
+                            )
+
+                            status = (
+                                query_execution.get(
+                                    "Status",
+                                    {}
+                                )
+                            )
+
+                            state = status.get(
+                                "State"
+                            )
+
+                            reason = status.get(
+                                "StateChangeReason"
+                            )
+
+                        except Exception:
+                            pass
+
+                    if state == "SUCCEEDED":
+                        break
+
+                    if state in (
+                        "FAILED",
+                        "CANCELLED"
+                    ):
+                        raise Exception(
+                            f"Athena Query {state}: {reason}"
+                        )
+
+                    await asyncio.sleep(2)
+
+                result = await session.call_tool(
+                    "manage_aws_athena_query_executions",
+                    {
+                        "operation":
+                            "get-query-results",
+                        "query_execution_id":
+                            query_execution_id
+                    }
+                )
+
+                if result.is_error:
+                    raise Exception(
+                        str(result)
+                    )
+
+                return result
