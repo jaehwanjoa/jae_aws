@@ -1,4 +1,4 @@
-from orchestrator import Orchestrator
+from orchestrator.orchestrator import Orchestrator
 
 def lambda_handler(event, context):
 
