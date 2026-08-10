@@ -1,13 +1,12 @@
-from orchestrator.planner import Planner
-from orchestrator.tool_mapping import get_mapping
-from orchestrator.table_catalog import TABLE_CATALOG
-from orchestrator.athena_query_generator import (
-    AthenaQueryGenerator
-)
-
-from mcp_tools.mcp_executor import MCPExecutor
+import json
+import re
+from mcp_tools.cortex_executor import CortexExecutor
+from agent.router import select_route
+from agent.cortex_query import build_issue_query
+from agent.summarizer import summarize_result
 
 import uuid
+import traceback
 
 
 class Orchestrator:
@@ -15,94 +14,135 @@ class Orchestrator:
     @classmethod
     def process(
         cls,
-        question: str,
-        customer: str
+        question,
+        customer
     ):
 
-        request_id = str(
-            uuid.uuid4()
-        )
+        print("### PROCESS START ###")
+
+        request_id = str(uuid.uuid4())
 
         try:
-            
-            table_meta = TABLE_CATALOG.get(
-                customer
-            )
-            
-            if not table_meta:
-            
-                raise ValueError(
-                    f"Unknown customer: {customer}"
+
+            route = select_route(question)
+
+            print("ROUTE=")
+            print(route)
+
+            if not route:
+                return {
+                    "request_id": request_id,
+                    "status": "error",
+                    "message": "지원하지 않는 질문입니다."
+                }
+
+            #
+            # Cortex
+            #
+            if route["source"] == "cortex":
+
+                query = build_issue_query(route)
+
+                print("QUERY=")
+                print(query)
+
+                result = CortexExecutor.execute(
+                    "get_issues",
+                    {
+                        "filters": query["filters"],
+                        "search_from": 0,
+                        "search_to": 10
+                    }
                 )
-            
-            database = table_meta[
-                "database"
-            ]
-            
-            table_name = table_meta[
-                "table_name"
-            ]            
- 
-            # 1. Planner
-            plan = Planner.parse(
-                question
-            )
 
-            # 2. Intent Mapping
-            mapping = get_mapping(
-                plan["intent"]
-            )
+                print("RESULT=")
+                print(str(result))
+                print(type(result))
 
-            # 3. 쿼리 생성
-            query = AthenaQueryGenerator.build(
-                plan=plan,
-                mapping=mapping,
-                table_name=table_name
-            )
+                if route["intent"] == "ONS-Malware":
+                    try:
+                        raw_json = result.structuredContent["result"]
 
-            # 4. MCP 실행
-            athena_result = (
-                MCPExecutor.execute_athena(
-                    query=query
+                        # raw_json newline conversion disabled
+                        # raw_json = (
+                        #     raw_json
+                        #     .replace("\\n", "\n")
+                        # )
+
+                        try:
+                            data = json.loads(raw_json)
+
+                        except json.JSONDecodeError as e:
+                            print(f"JSON Parse Error={e}")
+
+                            start = max(0, e.pos - 100)
+                            end = min(len(raw_json), e.pos + 100)
+
+                            print("===== ERROR CONTEXT START =====")
+                            print(raw_json[start:end])
+                            print("===== ERROR CONTEXT END =====")
+
+                            sanitized = re.sub(
+                                r'\\(?!["\\/bfnrtu])',
+                                r'\\\\',
+                                raw_json
+                            )
+
+                            print("Invalid escape sequence sanitized")
+
+                            data = json.loads(sanitized)
+
+                        data["reply"]["DATA"] = [
+                            x
+                            for x in data["reply"]["DATA"]
+                            if x.get("status.progress") != "Resolved"
+                        ]
+
+                        print("FILTERED_COUNT=")
+                        print(len(data["reply"]["DATA"]))
+
+                        result = json.dumps(data)
+
+                    except Exception as e:
+                        print(f"FILTER ERROR={e}")
+
+                print("FILTERED_RESULT=")
+                print(result)
+                print(type(result))
+                summary = summarize_result(
+                    str(result)
                 )
-            )
-            
+
+                return {
+                    "request_id": request_id,
+                    "status": "success",
+                    "route": route,
+                    "summary": summary
+                }
+
+            #
+            # Athena
+            #
+            if route["source"] == "athena":
+
+                return {
+                    "request_id": request_id,
+                    "status": "success",
+                    "route": route,
+                    "message": "Athena 분기 예정"
+                }
+
             return {
                 "request_id": request_id,
-                "status": "success",
-            
-                "customer":
-                    customer,
-            
-                "database":
-                    database,
-            
-                "table_name":
-                    table_name,
-            
-                "intent":
-                    plan["intent"],
-            
-                "query_type":
-                    mapping["query_type"],
-            
-                "plan":
-                    plan,
-            
-                "query":
-                    query,
-            
-                "athena_result":
-                    athena_result
+                "status": "error",
+                "message": "지원하지 않는 source"
             }
 
         except Exception as e:
 
-            import traceback
+            print("EXCEPTION=")
+            print(repr(e))
 
-            print("ERROR_TYPE =", type(e))
-            print("ERROR_REPR =", repr(e))
-            print("TRACEBACK =")
             print(traceback.format_exc())
 
             return {
@@ -110,3 +150,5 @@ class Orchestrator:
                 "status": "error",
                 "message": str(e)
             }
+
+

@@ -1,0 +1,488 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/correlations/get:
+    post:
+      summary: Get Correlation Rules
+      description: |-
+        Retrieve correlation rules defined on the tenant. Use this tool to inspect existing detection logic, find rules by name, severity, status (enabled/disabled), XQL query content, MITRE definitions, alert metadata, and execution mode. Filter operator and value formats vary by field — see the CorrelationRulesFilter schema for the per-field rules.
+      operationId: get_correlation_rules
+      tags:
+        - Correlation Rules
+      requestBody:
+        description: JSON object containing filters and pagination under a 'request_data' key. An empty request_data (with extended_view) returns all rules.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CorrelationRulesRequest'
+            examples:
+              all_rules:
+                summary: All correlation rules
+                value:
+                  request_data:
+                    extended_view: true
+                    search_from: 0
+                    search_to: 100
+      responses:
+        '200':
+          description: Successful response containing the requested correlation rules.
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request - invalid filter combination or unknown field.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    CorrelationRulesRequest:
+      type: object
+      required: [request_data]
+      properties:
+        request_data:
+          type: object
+          properties:
+            extended_view:
+              type: boolean
+              description: When true, returns the full rule definition including XQL query, MITRE mapping, schedule, suppression settings, etc.
+            filters:
+              type: array
+              description: List of filter clauses combined with logical AND. Leave empty to return all rules subject to pagination.
+              items:
+                oneOf:
+                  - $ref: '#/components/schemas/NameFilter'
+                  - $ref: '#/components/schemas/XqlQueryFilter'
+                  - $ref: '#/components/schemas/DescriptionFilter'
+                  - $ref: '#/components/schemas/AlertNameFilter'
+                  - $ref: '#/components/schemas/AlertDescriptionFilter'
+                  - $ref: '#/components/schemas/AlertFieldsFilter'
+                  - $ref: '#/components/schemas/SuppressionDurationFilter'
+                  - $ref: '#/components/schemas/DatasetFilter'
+                  - $ref: '#/components/schemas/UserDefinedSeverityFilter'
+                  - $ref: '#/components/schemas/UserDefinedCategoryFilter'
+                  - $ref: '#/components/schemas/InvestigationQueryLinkFilter'
+                  - $ref: '#/components/schemas/SearchWindowFilter'
+                  - $ref: '#/components/schemas/SimpleScheduleFilter'
+                  - $ref: '#/components/schemas/TimezoneFilter'
+                  - $ref: '#/components/schemas/CrontabFilter'
+                  - $ref: '#/components/schemas/SeverityFilter'
+                  - $ref: '#/components/schemas/IsEnabledFilter'
+                  - $ref: '#/components/schemas/AlertCategoryFilter'
+                  - $ref: '#/components/schemas/ExecutionModeFilter'
+                  - $ref: '#/components/schemas/DrilldownQueryTimeframeFilter'
+                  - $ref: '#/components/schemas/MappingStrategyFilter'
+                  - $ref: '#/components/schemas/AlertDomainFilter'
+                  - $ref: '#/components/schemas/SuppressionEnabledFilter'
+                  - $ref: '#/components/schemas/SuppressionFieldsFilter'
+                  - $ref: '#/components/schemas/MitreDefsFilter'
+            search_from:
+              type: integer
+              format: int32
+              default: 0
+              description: Zero-based offset of the first result.
+            search_to:
+              type: integer
+              format: int32
+              default: 100
+              description: Zero-based offset of the last result (exclusive).
+
+    # ── String fields (EQ / NEQ / IN) ────────────────────────────────────────
+
+    NameFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [name]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Rule display name.
+
+    XqlQueryFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [xql_query]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: XQL query body of the rule.
+
+    DescriptionFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [description]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Rule description text.
+
+    AlertNameFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [alert_name]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Name of the alert generated by the rule.
+
+    AlertDescriptionFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [alert_description]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Description of the alert generated by the rule.
+
+    AlertFieldsFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [alert_fields]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Alert fields expression.
+
+    SuppressionDurationFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [suppression_duration]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Suppression duration string (e.g. "1h", "24h").
+
+    DatasetFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [dataset]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Dataset name the rule queries against.
+
+    UserDefinedSeverityFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [user_defined_severity]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: User-defined severity label.
+
+    UserDefinedCategoryFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [user_defined_category]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: User-defined category label.
+
+    InvestigationQueryLinkFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [investigation_query_link]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: URL or reference to the investigation query.
+
+    SearchWindowFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [search_window]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Search window duration string (e.g. "1h", "7d").
+
+    SimpleScheduleFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [simple_schedule]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Simple schedule expression.
+
+    TimezoneFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [timezone]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Timezone identifier (e.g. "UTC", "America/New_York").
+
+    CrontabFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [crontab]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          description: Cron expression for scheduled rules.
+
+    # ── Enum fields ───────────────────────────────────────────────────────────
+
+    SeverityFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [severity]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          enum: [SEV_010_INFO, SEV_020_LOW, SEV_030_MEDIUM, SEV_040_HIGH]
+          description: Rule severity level.
+
+    IsEnabledFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [is_enabled]
+        operator:
+          type: string
+          enum: [EQ, NEQ]
+        value:
+          type: string
+          enum: [enabled, disabled]
+          description: Whether the rule is currently active. Note — this is a string, not a boolean.
+
+    AlertCategoryFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [alert_category]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          enum:
+            - other
+            - persistence
+            - evasion
+            - tampering
+            - file_type_obfuscation
+            - privilege_escalation
+            - credential_access
+            - lateral_movement
+            - execution
+            - collection
+            - exfiltration
+            - infiltration
+            - dropper
+            - file_privilege_manipulation
+            - reconnaissance
+            - discovery
+          description: MITRE-aligned alert category.
+
+    ExecutionModeFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [execution_mode]
+        operator:
+          type: string
+          enum: [EQ, NEQ]
+        value:
+          type: string
+          enum: [scheduled, real_time]
+          description: Whether the rule runs on a schedule or in real time.
+
+    DrilldownQueryTimeframeFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [drilldown_query_timeframe]
+        operator:
+          type: string
+          enum: [EQ, NEQ]
+        value:
+          type: string
+          enum: [query, alert]
+          description: Timeframe used for the drilldown query.
+
+    MappingStrategyFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [mapping_strategy]
+        operator:
+          type: string
+          enum: [EQ, NEQ]
+        value:
+          type: string
+          enum: [auto, custom]
+          description: MITRE mapping strategy for the rule.
+
+    AlertDomainFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [alert_domain]
+        operator:
+          type: string
+          enum: [EQ, NEQ, IN]
+        value:
+          type: string
+          enum: [domain_security, domain_it, domain_hunting]
+          description: Domain classification of the alert.
+
+    # ── Boolean field ─────────────────────────────────────────────────────────
+
+    SuppressionEnabledFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [suppression_enabled]
+        operator:
+          type: string
+          enum: [EQ, NEQ]
+        value:
+          type: boolean
+          description: Whether alert suppression is active for this rule.
+
+    # ── List fields (use IN operator) ─────────────────────────────────────────
+
+    SuppressionFieldsFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [suppression_fields]
+        operator:
+          type: string
+          enum: [IN]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of field names used for alert suppression grouping.
+
+    MitreDefsFilter:
+      type: object
+      required: [field, operator, value]
+      properties:
+        field:
+          type: string
+          enum: [mitre_defs]
+        operator:
+          type: string
+          enum: [IN]
+        value:
+          type: array
+          items:
+            type: string
+          description: List of MITRE ATT&CK technique IDs (e.g. ["T1059", "T1078"]).

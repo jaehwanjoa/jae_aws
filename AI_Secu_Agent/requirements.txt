@@ -1,3 +1,10 @@
 boto3
 mcp
-uv
+fastmcp
+fastapi
+uvicorn
+requests
+starlette
+authlib
+pydantic
+pydantic-settings

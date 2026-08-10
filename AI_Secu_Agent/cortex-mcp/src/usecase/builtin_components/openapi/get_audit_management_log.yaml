@@ -1,0 +1,132 @@
+openapi: 3.0.0
+paths:
+  /public_api/v1/audits/management_logs/:
+    post:
+      summary: Get Audit Management Log
+      description: |-
+        Retrieve audit management logs for actions performed on the tenant. Supports filtering, sorting, and pagination.
+      operationId: get_audit_management_log
+      tags:
+        - Audit
+      requestBody:
+        description: JSON object containing filters, sorting, and pagination under a 'request_data' key. An empty request_data returns the most recent entries.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditManagementLogRequest'
+            examples:
+              by_user_email:
+                summary: All actions performed by a specific user, newest first
+                value:
+                  request_data:
+                    filters:
+                      - field: "email"
+                        operator: "in"
+                        value: ["analyst@example.com"]
+                    search_from: 0
+                    search_to: 100
+                    sort:
+                      field: "timestamp"
+                      keyword: "desc"
+      responses:
+        '200':
+          description: Successful response containing the requested audit log entries.
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized. The API key is missing or invalid.
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden. The API key does not have the required permissions.
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    AuditManagementLogRequest:
+      type: object
+      required: [request_data]
+      properties:
+        request_data:
+          type: object
+          properties:
+            filters:
+              type: array
+              description: List of filter clauses combined with logical AND. Leave empty for no scoping.
+              items:
+                $ref: '#/components/schemas/AuditManagementLogFilter'
+            search_from:
+              type: integer
+              format: int32
+              default: 0
+              description: Zero-based offset of the first result.
+            search_to:
+              type: integer
+              format: int32
+              default: 100
+              description: Zero-based offset of the last result (exclusive). Server max is 100.
+            sort:
+              type: object
+              description: Sort order; defaults to most-recent-first.
+              properties:
+                field:
+                  type: string
+                  enum: [timestamp, email, type, sub_type, result]
+                  default: timestamp
+                keyword:
+                  type: string
+                  enum: [asc, desc]
+                  default: desc
+
+    AuditManagementLogFilter:
+      description: |-
+        A single filter clause. Use one of the two shapes:
+        1. String-list filter (for email, type, sub_type, result):
+           { "field": "email", "operator": "in", "value": ["user@example.com"] }
+        2. Numeric timestamp filter (for timestamp):
+           { "field": "timestamp", "operator": "gte", "value": 1730419200000 }
+           The timestamp value is epoch milliseconds.
+      oneOf:
+        - $ref: '#/components/schemas/AuditManagementLogStringFilter'
+        - $ref: '#/components/schemas/AuditManagementLogTimestampFilter'
+
+    AuditManagementLogStringFilter:
+      type: object
+      required: [field, operator, value]
+      description: Filter clause for string fields (email, type, sub_type, result).
+      properties:
+        field:
+          type: string
+          enum: [email, type, sub_type, result]
+        operator:
+          type: string
+          enum: [in]
+        value:
+          type: array
+          description: List of string values to match against.
+          items:
+            type: string
+
+    AuditManagementLogTimestampFilter:
+      type: object
+      required: [field, operator, value]
+      description: Filter clause for the timestamp field. Value is epoch milliseconds.
+      properties:
+        field:
+          type: string
+          enum: [timestamp]
+        operator:
+          type: string
+          enum: [gte, lte, eq]
+        value:
+          type: integer
+          format: int64
+          description: Epoch milliseconds. MUST be a JSON integer (e.g. 1730419200000), never a float (no .0) and never a string.

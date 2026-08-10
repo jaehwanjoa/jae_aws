@@ -1,0 +1,27 @@
+QUESTION_ROUTER = {
+
+    "취약점": "ONS_Vul_Monitoring",
+    "vulnerability": "ONS_Vul_Monitoring",
+    "cve": "ONS_Vul_Monitoring",
+
+    "cspm": "ONS_CSPM_Monitoring",
+    "클라우드": "ONS_CSPM_Monitoring",
+    "posture": "ONS_CSPM_Monitoring",
+
+    "악성코드": "ONS-Malware",
+    "malware": "ONS-Malware",
+
+    "cwp": "ONS_Cwp_Monitoring",
+    "xdr": "ONS_Cwp_Monitoring"
+}
+
+def select_filter(question: str):
+
+    q = question.lower()
+
+    for keyword, filter_name in QUESTION_ROUTER.items():
+
+        if keyword.lower() in q:
+            return filter_name
+
+    return None
