@@ -72,7 +72,7 @@ aws events put-rule \
 ```bash
 aws events put-targets \
   --rule guardduty-to-secbus \
-  --targets "Id"="ToSecBus", "Arn"="arn:aws:events:ap-northeast-2:747935822721:event-bus/ons-central-bus", "RoleArn"="arn:aws:iam::<SOURCE_ACCOUNT_ID>:role/EventBridgeToSecurityRole"
+  --targets "Id"="ToSecBus","Arn"="arn:aws:events:ap-northeast-2:747935822721:event-bus/ons-central-bus","RoleArn"="arn:aws:iam::<SOURCE_ACCOUNT_ID>:role/EventBridgeToSecurityRole"
 
 ```
 
