@@ -429,6 +429,21 @@ class Orchestrator:
                         f"{filename} not found in cache"
                 }
 
+            if route.get(
+                "intent"
+            ) == "SHA256_SEARCH":
+
+                return {
+                    "request_id":
+                        request_id,
+                    "status":
+                        "not_supported",
+                    "route":
+                        route,
+                    "message":
+                        "SHA256 직접 검색은 현재 지원하지 않습니다. 파일명으로 조회해 주세요."
+                }
+
             #
             # Cortex
             #
