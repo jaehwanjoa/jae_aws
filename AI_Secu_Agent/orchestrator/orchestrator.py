@@ -723,7 +723,7 @@ class Orchestrator:
                                     )
 
                                     print(
-                                        "CACHE_FILE="
+                                        "S3_INDEX_SAVE="
                                         + str(
                                             incident_detail_json.get(
                                                 "file_name"
