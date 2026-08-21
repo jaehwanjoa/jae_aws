@@ -723,7 +723,7 @@ class Orchestrator:
                                     )
 
                                     print(
-                                        "CACHE_FILE="
+                                        "S3_INDEX_SAVE="
                                         + str(
                                             incident_detail_json.get(
                                                 "file_name"
@@ -740,25 +740,17 @@ class Orchestrator:
                                 )
 
                                 WF_DETAIL_INTENTS = {
-
                                     "SHA256_SEARCH",
                                     "FILENAME_SEARCH"
-
                                 }
 
-                                print(
-                                    f"INTENT={intent}"
-                                )
+                                if sha256:
 
-                                if (
-                                    sha256
-                                    and intent != "ONS-Malware"
-                                ):
-
-                                    print("WF_REPORT_START")
+                                    print(
+                                        "WF_REPORT_START"
+                                    )
 
                                     try:
-
                                         wildfire_report = (
                                             get_wildfire_report(
                                                 sha256
@@ -779,47 +771,48 @@ class Orchestrator:
                                             "WF_REPORT_EMPTY"
                                         )
 
-                                    elif intent == "ONS-Malware":
+                                    elif intent == "ONS_MALWARE":
 
                                         data["reply"]["DATA"][0][
                                             "wildfire"
-                                        ] = summarize_wildfire(
-                                            wildfire_report
+                                        ] = (
+                                            summarize_wildfire(
+                                                wildfire_report
+                                            )
                                         )
 
-                                    elif (
-                                        intent
-                                        in
-                                        WF_DETAIL_INTENTS
-                                    ):
+                                    elif intent in WF_DETAIL_INTENTS:
 
                                         data["reply"]["DATA"][0][
                                             "issue_summary"
                                         ] = {
-
                                             "file_name":
                                                 data["reply"]["DATA"][0].get(
                                                     "file_name"
                                                 ),
-
                                             "severity":
                                                 data["reply"]["DATA"][0].get(
                                                     "severity"
                                                 ),
-
                                             "sha256":
                                                 sha256
                                         }
 
                                         data["reply"]["DATA"][0][
                                             "wildfire"
-                                        ] = extract_wildfire_detail(
-                                            wildfire_report
+                                        ] = (
+                                            extract_wildfire_detail(
+                                                wildfire_report
+                                            )
                                         )
 
-                                    print("WF_REPORT_END")
+                                print(
+                                    "WF_REPORT_END"
+                                )
 
-                                print("INCIDENT_DETAIL_MERGED")
+                                print(
+                                    "INCIDENT_DETAIL_MERGED"
+                                )
 
                                 print(
                                     json.dumps(
@@ -830,6 +823,7 @@ class Orchestrator:
                                 )
 
                             except Exception as e:
+
                                 print(
                                     f"INCIDENT_DETAIL_PARSE_ERROR={e}"
                                 )
@@ -849,158 +843,70 @@ class Orchestrator:
                     "FILTERED_RESULT="
                 )
 
-                print(result)
-                print(type(result))
+                print(
+                    result
+                )
+
+                print(
+                    type(result)
+                )
 
                 summary = summarize_result(
                     str(result)
                 )
 
                 return {
-
                     "request_id":
                         request_id,
-
                     "status":
                         "success",
-
                     "route":
                         route,
-
                     "summary":
                         summary
                 }
 
-            #
-            # Athena
-            #
             if route["source"] == "athena":
 
                 return {
-
                     "request_id":
                         request_id,
-
                     "status":
                         "success",
-
                     "route":
                         route,
-
                     "message":
                         "Athena 분기 예정"
                 }
 
             return {
-
                 "request_id":
                     request_id,
-
                 "status":
                     "error",
-
                 "message":
                     "지원하지 않는 source"
             }
 
         except Exception as e:
 
-            print("EXCEPTION=")
-            print(repr(e))
+            print(
+                "EXCEPTION="
+            )
+
+            print(
+                repr(e)
+            )
 
             print(
                 traceback.format_exc()
             )
 
             return {
-
                 "request_id":
                     request_id,
-
                 "status":
                     "error",
-
                 "message":
                     str(e)
             }
-
-
-
-S3_BUCKET = os.environ["S3_BUCKET"]
-
-s3_client = boto3.client("s3")
-
-
-def save_filename_index(
-    file_name,
-    sha256,
-    incident_id
-):
-
-    try:
-
-        data = {}
-
-        try:
-
-            obj = s3_client.get_object(
-                Bucket=S3_BUCKET,
-                Key="wf-index.json"
-            )
-
-            data = json.loads(
-                obj["Body"].read()
-            )
-
-        except Exception:
-            data = {}
-
-        data[file_name.lower()] = {
-            "sha256": sha256,
-            "incident_id": incident_id
-        }
-
-        s3_client.put_object(
-            Bucket=S3_BUCKET,
-            Key="wf-index.json",
-            Body=json.dumps(data)
-        )
-
-        print(
-            f"S3_INDEX_SAVE={file_name}"
-        )
-
-    except Exception as e:
-
-        print(
-            f"S3_INDEX_ERROR={e}"
-        )
-
-
-def lookup_filename_index(
-    file_name
-):
-
-    try:
-
-        obj = s3_client.get_object(
-            Bucket=S3_BUCKET,
-            Key="wf-index.json"
-        )
-
-        data = json.loads(
-            obj["Body"].read()
-        )
-
-        return data.get(
-            file_name.lower()
-        )
-
-    except Exception as e:
-
-        print(
-            f"S3_LOOKUP_ERROR={e}"
-        )
-
-        return None
-

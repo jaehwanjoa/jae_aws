@@ -8,3 +8,4 @@ starlette
 authlib
 pydantic
 pydantic-settings
+xmltodict

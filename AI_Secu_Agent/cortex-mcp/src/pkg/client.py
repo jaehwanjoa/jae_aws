@@ -32,6 +32,9 @@ class PAPIClient(httpx.AsyncClient):
         if 'timeout' not in kwargs:
             kwargs['timeout'] = timeout
 
+        if 'follow_redirects' not in kwargs:
+            kwargs['follow_redirects'] = True
+
         super().__init__(base_url=base_url, headers=headers, **kwargs)
 
 

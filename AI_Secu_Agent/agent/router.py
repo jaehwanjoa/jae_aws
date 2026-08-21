@@ -68,7 +68,35 @@ INTENT_MAP = {
 
 def select_route(question: str):
 
+    import re
+
     q = question.lower()
+
+    match = re.search(
+        r'\b[a-z0-9_-]+\.(dll|exe|sys|jar|war|zip|rar|7z|ps1|bat|sh)\b',
+        q,
+        re.IGNORECASE
+    )
+
+    if match:
+        return {
+            "source": "cortex",
+            "intent": "FILENAME_SEARCH",
+            "filename": match.group(0)
+        }
+
+    sha_match = re.search(
+        r'\b[a-f0-9]{64}\b',
+        q,
+        re.IGNORECASE
+    )
+
+    if sha_match:
+        return {
+            "source": "cortex",
+            "intent": "SHA256_SEARCH",
+            "sha256": sha_match.group(0)
+        }
 
     for keyword, route in INTENT_MAP.items():
 

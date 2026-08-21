@@ -21,10 +21,10 @@ def summarize_result(result_text):
 
             raw_json = m.group(1)
 
-            raw_json = raw_json.encode(
-                "utf-8"
-            ).decode(
-                "unicode_escape"
+            raw_json = (
+                raw_json
+                .encode("utf-8")
+                .decode("unicode_escape")
             )
 
             data = json.loads(raw_json)
@@ -43,7 +43,10 @@ def summarize_result(result_text):
                 result_text[start:end + 1]
             )
 
-        reply = data.get("reply", {})
+        reply = data.get(
+            "reply",
+            {}
+        )
 
         issues = reply.get(
             "DATA",
@@ -57,26 +60,88 @@ def summarize_result(result_text):
 
         summary_items = []
 
-        for issue in issues[:10]:
+        for idx, issue in enumerate(
+            issues[:10],
+            start=1
+        ):
 
-            summary_items.append(
-                {
-                    "id": issue.get("id"),
-                    "severity": issue.get("severity"),
-                    "asset": (
-                        issue.get("asset_names", [""])
-                    )[0],
-                    "name": issue.get("name")
-                }
+            findings = issue.get(
+                "findings",
+                []
             )
 
+            summary_items.append({
+
+                "index": idx,
+
+                "id":
+                    issue.get("id"),
+
+                "name":
+                    issue.get("name"),
+
+                "severity":
+                    issue.get("severity"),
+
+                "status":
+                    issue.get(
+                        "status.progress"
+                    ),
+
+                "finding_id":
+                    findings[0]
+                    if findings
+                    else None,
+
+                "asset_names":
+                    issue.get(
+                        "asset_names",
+                        []
+                    ),
+
+                "asset_accounts":
+                    issue.get(
+                        "asset_accounts",
+                        []
+                    ),
+
+                "asset_regions":
+                    issue.get(
+                        "asset_regions",
+                        []
+                    ),
+
+                "asset_providers":
+                    issue.get(
+                        "asset_providers",
+                        []
+                    ),
+
+                "asset_types":
+                    issue.get(
+                        "asset_types",
+                        []
+                    ),
+
+                "category":
+                    issue.get(
+                        "category"
+                    )
+            })
+
         return {
-            "count": filter_count,
-            "top_issues": summary_items
+
+            "count":
+                filter_count,
+
+            "top_issues":
+                summary_items
         }
 
     except Exception as e:
 
         return {
-            "summary": f"파싱 오류: {str(e)}"
+            "summary":
+            f"파싱 오류: {str(e)}"
         }
+

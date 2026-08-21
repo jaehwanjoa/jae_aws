@@ -9,6 +9,9 @@ def build_issue_query(route):
     if route["source"] != "cortex":
         return None
 
-    return FILTER_MAP.get(
-        route["intent"]
-    )
+    query = FILTER_MAP.get(route["intent"])
+
+    print("FILTER_MAP_DEBUG=")
+    print(query)
+
+    return query
