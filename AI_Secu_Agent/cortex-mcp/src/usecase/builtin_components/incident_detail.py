@@ -20,9 +20,14 @@ async def get_incident_detail(
 
     fetcher = await get_fetcher(ctx)
 
-    print(f"INVESTIGATION_REQUEST={incident_id}")
+
+
+    logger.warning(
+        f"BUILTIN_INCIDENT_DETAIL={incident_id}"
+    )
 
     response = await fetcher.send_request(
+
         f"/xsoar/investigation/{incident_id}",
         method="POST",
         body={
@@ -33,7 +38,6 @@ async def get_incident_detail(
         omit_papi_prefix=True,
     )
 
-    print(f"ENTRY_COUNT={len(response.get('entries', []))}")
 
     result = {
         "incident_id": incident_id,
@@ -64,7 +68,6 @@ async def get_incident_detail(
             if match:
                 result[field] = match.group(1).strip()
 
-        print(f"SHA256={result.get('sha256')}")
         break
 
     return create_response(data=result)

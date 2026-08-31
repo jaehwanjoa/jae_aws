@@ -602,8 +602,72 @@ class Orchestrator:
                             )
                         )
 
+                        print(
+                            f"TOTAL_RECORDS={len(data['reply']['DATA'])}"
+                        )
+
+                        for r in data["reply"]["DATA"]:
+
+                            print(
+                                f"CANDIDATE_CASE_IDS={r.get('case_ids')}"
+                            )
+
+                            print(
+                                f"CANDIDATE_NAME={r.get('name')}"
+                            )
+
+                        
                         first_record = (
                             data["reply"]["DATA"][0]
+                        )
+
+
+                        malware_summary = []
+
+                        for r in data["reply"]["DATA"]:
+
+                            malware_summary.append({
+                                "name": r.get("name"),
+                                "severity": r.get("severity"),
+                                "case_ids": r.get("case_ids"),
+                                "description": r.get("description"),
+                                "tags": r.get("tags")
+                            })
+
+                        print(
+                            "MALWARE_SUMMARY="
+                        )
+
+                        print(
+                            json.dumps(
+                                malware_summary,
+                                ensure_ascii=False,
+                                indent=2
+                            )
+                        )
+
+                        malware_summary = []
+
+                        for r in data["reply"]["DATA"]:
+
+                            malware_summary.append({
+                                "name": r.get("name"),
+                                "severity": r.get("severity"),
+                                "case_ids": r.get("case_ids"),
+                                "description": r.get("description"),
+                                "tags": r.get("tags")
+                            })
+
+                        print(
+                            "MALWARE_SUMMARY="
+                        )
+
+                        print(
+                            json.dumps(
+                                malware_summary,
+                                ensure_ascii=False,
+                                indent=2
+                            )
                         )
 
                         print(
@@ -615,13 +679,46 @@ class Orchestrator:
                         )
 
                         print(
+                            f"MALWARE_ISSUE_ID={first_record.get('id')}"
+                        )
+
+                        print(
+                            f"MALWARE_EXTERNAL_ID={first_record.get('external_id')}"
+                        )
+
+                        print(
+                            f"MALWARE_CATEGORY={first_record.get('category')}"
+                        )
+
+                        print(
                             f"FINDINGS={first_record.get('findings')}"
                         )
 
                         print("MARKER_A")
 
-                        issue_id = str(
-                            first_record.get("id")
+                        case_ids = (
+                            first_record.get(
+                                "case_ids",
+                                []
+                            )
+                        )
+
+                        if case_ids:
+
+                            issue_id = str(
+                                first_record.get("id")
+                            )
+
+                        else:
+
+                            issue_id = None
+
+                        print(
+                            f"TEST_INVESTIGATION_ID={issue_id}"
+                        )
+
+                        print(
+                            f"INVESTIGATION_TARGET={issue_id}"
                         )
 
                         incident_detail = None
@@ -702,6 +799,36 @@ class Orchestrator:
                                 data["reply"]["DATA"][0][
                                     "incident_detail"
                                 ] = incident_detail_json
+
+                                incident_type = (
+                                    incident_detail_json.get(
+                                        "incident_type"
+                                    )
+                                )
+
+                                print(
+                                    f"INCIDENT_TYPE={incident_type}"
+                                )
+
+                                if (
+                                    route.get("intent")
+                                    == "ONS_Vul_Monitoring"
+                                    and
+                                    incident_type != "VULNERABILITY"
+                                ):
+
+                                    print(
+                                        f"SKIP_NON_VULNERABILITY={incident_type}"
+                                    )
+
+                                    return {
+                                        "request_id":
+                                            request_id,
+                                        "status":
+                                            "not_found",
+                                        "message":
+                                            f"Expected VULNERABILITY, got {incident_type}"
+                                    }
 
                                 sha256 = (
                                     incident_detail_json.get(
@@ -970,7 +1097,7 @@ def save_filename_index(
         except Exception:
             data = {}
 
-        data[file_name.lower()] = {
+        data[(file_name or "unknown").lower()] = {
             "sha256": sha256,
             "incident_id": incident_id
         }
@@ -1008,7 +1135,7 @@ def lookup_filename_index(
         )
 
         return data.get(
-            file_name.lower()
+            (file_name or "unknown").lower()
         )
 
     except Exception as e:

@@ -58,6 +58,14 @@ def summarize_result(result_text):
             len(issues)
         )
 
+        if filter_count == 0:
+
+            return {
+                "count": 0,
+                "message": "현재 조회 조건에 해당하는 이벤트가 없습니다.",
+                "top_issues": []
+            }
+
         summary_items = []
 
         for idx, issue in enumerate(
@@ -70,7 +78,16 @@ def summarize_result(result_text):
                 []
             )
 
-            summary_items.append({
+            incident_detail = issue.get(
+                "incident_detail",
+                {}
+            )
+
+            category = issue.get(
+                "category"
+            )
+
+            item = {
 
                 "index": idx,
 
@@ -88,49 +105,104 @@ def summarize_result(result_text):
                         "status.progress"
                     ),
 
-                "finding_id":
-                    findings[0]
-                    if findings
-                    else None,
-
-                "asset_names":
-                    issue.get(
-                        "asset_names",
-                        []
-                    ),
-
-                "asset_accounts":
-                    issue.get(
-                        "asset_accounts",
-                        []
-                    ),
-
-                "asset_regions":
-                    issue.get(
-                        "asset_regions",
-                        []
-                    ),
-
-                "asset_providers":
-                    issue.get(
-                        "asset_providers",
-                        []
-                    ),
-
-                "asset_types":
-                    issue.get(
-                        "asset_types",
-                        []
-                    ),
-
                 "category":
-                    issue.get(
-                        "category"
-                    )
-            })
+                    category
+            }
+
+            if category == "Malware":
+
+                item.update({
+
+                    "hostname":
+                        incident_detail.get(
+                            "hostname"
+                        ),
+
+                    "container_name":
+                        incident_detail.get(
+                            "container_name"
+                        ),
+
+                    "image_name":
+                        incident_detail.get(
+                            "image_name"
+                        ),
+
+                    "account_id":
+                        incident_detail.get(
+                            "account_id"
+                        ),
+
+                    "asset_name":
+                        incident_detail.get(
+                            "asset_name"
+                        ),
+
+                    "file_name":
+                        incident_detail.get(
+                            "file_name"
+                        ),
+
+                    "file_path":
+                        incident_detail.get(
+                            "file_path"
+                        ),
+
+                    "sha256":
+                        incident_detail.get(
+                            "sha256"
+                        ),
+
+                    "user":
+                        incident_detail.get(
+                            "user"
+                        ),
+
+                    "initiator":
+                        incident_detail.get(
+                            "initiator"
+                        )
+                })
+
+            else:
+
+                item.update({
+
+                    "finding_id":
+                        findings[0]
+                        if findings
+                        else None,
+
+                    "asset_names":
+                        issue.get(
+                            "asset_names",
+                            []
+                        ),
+
+                    "cve_id":
+                        incident_detail.get(
+                            "cve_id"
+                        ),
+
+                    "cvss_score":
+                        incident_detail.get(
+                            "cvss_score"
+                        ),
+
+                    "file_path":
+                        incident_detail.get(
+                            "file_path"
+                        ),
+
+                    "fix_versions":
+                        incident_detail.get(
+                            "fix_versions"
+                        )
+                })
+
+            summary_items.append(item)
 
         return {
-
             "count":
                 filter_count,
 
@@ -142,6 +214,5 @@ def summarize_result(result_text):
 
         return {
             "summary":
-            f"파싱 오류: {str(e)}"
+                f"파싱 오류: {str(e)}"
         }
-
