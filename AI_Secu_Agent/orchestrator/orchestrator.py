@@ -14,15 +14,7 @@ from agent.router import select_route
 from agent.cortex_query import build_issue_query
 from agent.summarizer import summarize_result
 
-
-
-
-
-
-
-
 WF_CACHE_TTL = 3600
-
 
 def get_wildfire_report(sha256: str):
 
@@ -42,9 +34,6 @@ def get_wildfire_report(sha256: str):
     return xmltodict.parse(
         response.text
     )
-
-
-
 
 def summarize_wildfire(report):
 
@@ -89,8 +78,6 @@ def summarize_wildfire(report):
         )
 
         return {}
-
-
 
 def extract_wildfire_detail(report):
 
@@ -238,9 +225,7 @@ def extract_wildfire_detail(report):
 
         return {}
 
-
 class Orchestrator:
-
     
     @classmethod
     def process_s3_incident(
@@ -654,15 +639,7 @@ class Orchestrator:
 
                         issue = first_record
 
-
                         malware_summary = []
-
-
-                        session, ctx = (
-                            asyncio.run(
-                                CortexExecutor.open_session()
-                            )
-                        )
 
                         print("TOP10_LOOP_START")
 
@@ -769,16 +746,11 @@ class Orchestrator:
                                     "STEP1"
                                 )
 
-                                incident_detail = (
-                                    asyncio.run(
-                                        CortexExecutor.call_tool(
-                                            session,
-                                            "get_incident_detail",
-                                            {
-                                                "incident_id": issue_id
-                                            }
-                                        )
-                                    )
+                                incident_detail = CortexExecutor.execute(
+                                    "get_incident_detail",
+                                    {
+                                        "incident_id": issue_id
+                                    }
                                 )
 
                             print(
@@ -1125,12 +1097,8 @@ class Orchestrator:
                     str(e)
             }
 
-
-
 S3_BUCKET = os.environ["S3_BUCKET"]
-
 s3_client = boto3.client("s3")
-
 
 def save_filename_index(
     file_name,
