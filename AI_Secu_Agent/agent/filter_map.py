@@ -11,6 +11,11 @@ FILTER_MAP = {
                 "field": "status.progress",
                 "operator": "in",
                 "value": ["New"]
+            },
+            {
+                "field": "category",
+                "operator": "in",
+                "value": ["Malware"]
             }
         ]
     },

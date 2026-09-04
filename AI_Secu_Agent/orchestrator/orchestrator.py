@@ -1,3 +1,4 @@
+import asyncio
 import json
 import boto3
 import os
@@ -239,6 +240,36 @@ def extract_wildfire_detail(report):
 
 
 class Orchestrator:
+
+    
+    @classmethod
+    def process_s3_incident(
+        cls,
+        issue_id
+    ):
+
+        print(
+            f"S3_DIRECT_INCIDENT={issue_id}"
+        )
+
+        result = CortexExecutor.execute(
+            "get_incident_detail",
+            {
+                "incident_id": str(issue_id)
+            }
+        )
+
+        print(
+            "INCIDENT_DETAIL="
+        )
+
+        print(result)
+
+        return {
+            "status": "success",
+            "issue_id": issue_id,
+            "result": str(result)
+        }
 
     @classmethod
     def process(
@@ -621,360 +652,388 @@ class Orchestrator:
                             data["reply"]["DATA"][0]
                         )
 
+                        issue = first_record
+
 
                         malware_summary = []
 
-                        for r in data["reply"]["DATA"]:
 
-                            malware_summary.append({
-                                "name": r.get("name"),
-                                "severity": r.get("severity"),
-                                "case_ids": r.get("case_ids"),
-                                "description": r.get("description"),
-                                "tags": r.get("tags")
-                            })
-
-                        print(
-                            "MALWARE_SUMMARY="
-                        )
-
-                        print(
-                            json.dumps(
-                                malware_summary,
-                                ensure_ascii=False,
-                                indent=2
+                        session, ctx = (
+                            asyncio.run(
+                                CortexExecutor.open_session()
                             )
                         )
 
-                        malware_summary = []
+                        print("TOP10_LOOP_START")
 
-                        for r in data["reply"]["DATA"]:
+                        for issue in data["reply"]["DATA"][:5]:
 
-                            malware_summary.append({
-                                "name": r.get("name"),
-                                "severity": r.get("severity"),
-                                "case_ids": r.get("case_ids"),
-                                "description": r.get("description"),
-                                "tags": r.get("tags")
-                            })
-
-                        print(
-                            "MALWARE_SUMMARY="
-                        )
-
-                        print(
-                            json.dumps(
-                                malware_summary,
-                                ensure_ascii=False,
-                                indent=2
-                            )
-                        )
-
-                        print(
-                            f"ISSUE_ID={first_record.get('id')}"
-                        )
-
-                        print(
-                            f"CASE_IDS={first_record.get('case_ids')}"
-                        )
-
-                        print(
-                            f"MALWARE_ISSUE_ID={first_record.get('id')}"
-                        )
-
-                        print(
-                            f"MALWARE_EXTERNAL_ID={first_record.get('external_id')}"
-                        )
-
-                        print(
-                            f"MALWARE_CATEGORY={first_record.get('category')}"
-                        )
-
-                        print(
-                            f"FINDINGS={first_record.get('findings')}"
-                        )
-
-                        print("MARKER_A")
-
-                        case_ids = (
-                            first_record.get(
-                                "case_ids",
-                                []
-                            )
-                        )
-
-                        if case_ids:
-
-                            issue_id = str(
-                                first_record.get("id")
-                            )
-
-                        else:
-
-                            issue_id = None
-
-                        print(
-                            f"TEST_INVESTIGATION_ID={issue_id}"
-                        )
-
-                        print(
-                            f"INVESTIGATION_TARGET={issue_id}"
-                        )
-
-                        incident_detail = None
-
-                        intent = (
-                            route.get("intent")
-                            if route
-                            else None
-                        )
-
-                        print(
-                            f"INTENT={intent}"
-                        )
-
-                        intent = (
-                            route.get("intent")
-                            if route
-                            else None
-                        )
-
-                        if False:
                             print(
-                                "SKIP_INCIDENT_DETAIL_FOR_ONS_MALWARE"
+                                f"TOP10_ISSUE_ID={issue.get('id')}"
+                            )
+
+                            print(
+                                f"ISSUE_ID={issue.get('id')}"
+                            )
+
+                            print(
+                                f"CASE_IDS={issue.get('case_ids')}"
+                            )
+
+                            print(
+                                f"MALWARE_ISSUE_ID={issue.get('id')}"
+                            )
+
+                            print(
+                                f"MALWARE_EXTERNAL_ID={issue.get('external_id')}"
+                            )
+
+                            print(
+                                f"MALWARE_CATEGORY={issue.get('category')}"
+                            )
+
+                            print(
+                                f"FINDINGS={issue.get('findings')}"
+                            )
+
+                            print("MARKER_A")
+
+                            case_ids = (
+                                issue.get(
+                                    "case_ids",
+                                    []
+                                )
+                            )
+
+                            if case_ids:
+
+                                issue_id = str(
+                                    issue.get("id")
+                                )
+
+                            else:
+
+                                issue_id = None
+
+                            if not issue_id:
+
+                                print(
+                                    f"SKIP_INVESTIGATION_NO_CASE_IDS={issue.get('id')}"
+                                )
+
+                                continue
+
+                            print(
+                                f"TEST_INVESTIGATION_ID={issue_id}"
+                            )
+
+                            print(
+                                f"INVESTIGATION_TARGET={issue_id}"
                             )
 
                             incident_detail = None
 
-                            result = json.dumps(
-                                data,
-                                ensure_ascii=False
+                            intent = (
+                                route.get("intent")
+                                if route
+                                else None
                             )
-
-                        else:
-
-                            print("MARKER_B")
 
                             print(
-                                "STEP1"
+                                f"INTENT={intent}"
                             )
 
-                            incident_detail = (
-                                CortexExecutor.execute(
-                                    "get_incident_detail",
-                                    {
-                                        "incident_id": issue_id
-                                    }
-                                )
+                            intent = (
+                                route.get("intent")
+                                if route
+                                else None
                             )
 
-                        print(
-                            "STEP2"
-                        )
-
-                        print(
-                            "INCIDENT_DETAIL="
-                        )
-
-                        print(
-                            incident_detail
-                        )
-
-                        if (
-                            incident_detail
-                            and incident_detail.structuredContent
-                            and "result"
-                            in incident_detail.structuredContent
-                        ):
-                            try:
-                                incident_detail_json = (
-                                    json.loads(
-                                        incident_detail
-                                        .structuredContent[
-                                            "result"
-                                        ]
-                                    )
+                            if False:
+                                print(
+                                    "SKIP_INCIDENT_DETAIL_FOR_ONS_MALWARE"
                                 )
 
-                                data["reply"]["DATA"][0][
-                                    "incident_detail"
-                                ] = incident_detail_json
+                                incident_detail = None
 
-                                incident_type = (
-                                    incident_detail_json.get(
-                                        "incident_type"
-                                    )
+                                result = json.dumps(
+                                    data,
+                                    ensure_ascii=False
                                 )
+
+                            else:
+
+                                print("MARKER_B")
 
                                 print(
-                                    f"INCIDENT_TYPE={incident_type}"
+                                    "STEP1"
                                 )
 
-                                if (
-                                    route.get("intent")
-                                    == "ONS_Vul_Monitoring"
-                                    and
-                                    incident_type != "VULNERABILITY"
-                                ):
-
-                                    print(
-                                        f"SKIP_NON_VULNERABILITY={incident_type}"
-                                    )
-
-                                    return {
-                                        "request_id":
-                                            request_id,
-                                        "status":
-                                            "not_found",
-                                        "message":
-                                            f"Expected VULNERABILITY, got {incident_type}"
-                                    }
-
-                                sha256 = (
-                                    incident_detail_json.get(
-                                        "sha256"
+                                incident_detail = (
+                                    asyncio.run(
+                                        CortexExecutor.call_tool(
+                                            session,
+                                            "get_incident_detail",
+                                            {
+                                                "incident_id": issue_id
+                                            }
+                                        )
                                     )
                                 )
 
-                                print(
-                                    "INCIDENT_DETAIL_JSON="
-                                )
+                            print(
+                                "STEP2"
+                            )
 
-                                print(
-                                    json.dumps(
-                                        incident_detail_json,
-                                        indent=2,
-                                        ensure_ascii=False
+                            print(
+                                "INCIDENT_DETAIL="
+                            )
+
+                            print(
+                                incident_detail
+                            )
+
+                            if (
+                                incident_detail
+                                and incident_detail.structuredContent
+                                and "result"
+                                in incident_detail.structuredContent
+                            ):
+                                try:
+                                    incident_detail_json = (
+                                        json.loads(
+                                            incident_detail
+                                            .structuredContent[
+                                                "result"
+                                            ]
+                                        )
                                     )
-                                )
 
-                                print(
-                                    f"SHA256_DEBUG={sha256}"
-                                )
+                                    issue[
+                                        "incident_detail"
+                                    ] = incident_detail_json
 
-                                if sha256:
-
-                                    save_filename_index(
+                                    incident_type = (
                                         incident_detail_json.get(
-                                            "file_name"
-                                        ),
-                                        sha256,
-                                        incident_detail_json.get(
-                                            "incident_id"
+                                            "incident_type"
                                         )
                                     )
 
                                     print(
-                                        "S3_INDEX_SAVE="
-                                        + str(
-                                            incident_detail_json.get(
-                                                "file_name"
-                                            )
-                                        )
+                                        f"INCIDENT_TYPE={incident_type}"
                                     )
 
-                                intent = (
-                                    route.get(
-                                        "intent"
-                                    )
-                                    if route
-                                    else None
-                                )
-
-                                WF_DETAIL_INTENTS = {
-
-                                    "SHA256_SEARCH",
-                                    "FILENAME_SEARCH"
-
-                                }
-
-                                print(
-                                    f"INTENT={intent}"
-                                )
-
-                                if (
-                                    sha256
-                                    and intent != "ONS-Malware"
-                                ):
-
-                                    print("WF_REPORT_START")
-
-                                    try:
-
-                                        wildfire_report = (
-                                            get_wildfire_report(
-                                                sha256
-                                            )
-                                        )
-
-                                    except Exception as e:
-
-                                        print(
-                                            f"WF_REPORT_ERROR={e}"
-                                        )
-
-                                        wildfire_report = {}
-
-                                    if not wildfire_report:
-
-                                        print(
-                                            "WF_REPORT_EMPTY"
-                                        )
-
-                                    elif intent == "ONS-Malware":
-
-                                        data["reply"]["DATA"][0][
-                                            "wildfire"
-                                        ] = summarize_wildfire(
-                                            wildfire_report
-                                        )
-
-                                    elif (
-                                        intent
-                                        in
-                                        WF_DETAIL_INTENTS
+                                    if (
+                                        route.get("intent")
+                                        == "ONS_Vul_Monitoring"
+                                        and
+                                        incident_type != "VULNERABILITY"
                                     ):
 
-                                        data["reply"]["DATA"][0][
-                                            "issue_summary"
-                                        ] = {
-
-                                            "file_name":
-                                                data["reply"]["DATA"][0].get(
-                                                    "file_name"
-                                                ),
-
-                                            "severity":
-                                                data["reply"]["DATA"][0].get(
-                                                    "severity"
-                                                ),
-
-                                            "sha256":
-                                                sha256
-                                        }
-
-                                        data["reply"]["DATA"][0][
-                                            "wildfire"
-                                        ] = extract_wildfire_detail(
-                                            wildfire_report
+                                        print(
+                                            f"SKIP_NON_VULNERABILITY={incident_type}"
                                         )
 
-                                    print("WF_REPORT_END")
+                                        return {
+                                            "request_id":
+                                                request_id,
+                                            "status":
+                                                "not_found",
+                                            "message":
+                                                f"Expected VULNERABILITY, got {incident_type}"
+                                        }
 
-                                print("INCIDENT_DETAIL_MERGED")
-
-                                print(
-                                    json.dumps(
-                                        data["reply"]["DATA"][0],
-                                        indent=2,
-                                        ensure_ascii=False
+                                    sha256 = (
+                                        incident_detail_json.get(
+                                            "sha256"
+                                        )
                                     )
-                                )
 
-                            except Exception as e:
-                                print(
-                                    f"INCIDENT_DETAIL_PARSE_ERROR={e}"
-                                )
+                                    print(
+                                        "INCIDENT_DETAIL_JSON="
+                                    )
+
+                                    print(
+                                        json.dumps(
+                                            incident_detail_json,
+                                            indent=2,
+                                            ensure_ascii=False
+                                        )
+                                    )
+
+                                    print(
+                                        f"SHA256_DEBUG={sha256}"
+                                    )
+
+                                    if sha256:
+
+                                        save_filename_index(
+                                            incident_detail_json.get(
+                                                "file_name"
+                                            ),
+                                            sha256,
+                                            incident_detail_json.get(
+                                                "incident_id"
+                                            )
+                                        )
+
+                                        print(
+                                            "S3_INDEX_SAVE="
+                                            + str(
+                                                incident_detail_json.get(
+                                                    "file_name"
+                                                )
+                                            )
+                                        )
+
+                                    intent = (
+                                        route.get(
+                                            "intent"
+                                        )
+                                        if route
+                                        else None
+                                    )
+
+                                    WF_DETAIL_INTENTS = {
+
+                                        "SHA256_SEARCH",
+                                        "FILENAME_SEARCH"
+
+                                    }
+
+                                    print(
+                                        f"INTENT={intent}"
+                                    )
+
+                                    if (
+                                        sha256
+                                        and intent != "ONS-Malware"
+                                    ):
+
+                                        print("WF_REPORT_START")
+
+                                        try:
+
+                                            wildfire_report = (
+                                                get_wildfire_report(
+                                                    sha256
+                                                )
+                                            )
+
+                                        except Exception as e:
+
+                                            print(
+                                                f"WF_REPORT_ERROR={e}"
+                                            )
+
+                                            wildfire_report = {}
+
+                                        if not wildfire_report:
+
+                                            print(
+                                                "WF_REPORT_EMPTY"
+                                            )
+
+                                        elif intent == "ONS-Malware":
+
+                                            issue[
+                                                "wildfire"
+                                            ] = summarize_wildfire(
+                                                wildfire_report
+                                            )
+
+                                        elif (
+                                            intent
+                                            in
+                                            WF_DETAIL_INTENTS
+                                        ):
+
+                                            issue[
+                                                "issue_summary"
+                                            ] = {
+
+                                                "file_name":
+                                                    issue.get(
+                                                        "file_name"
+                                                    ),
+
+                                                "severity":
+                                                    issue.get(
+                                                        "severity"
+                                                    ),
+
+                                                "sha256":
+                                                    sha256
+                                            }
+
+                                            issue[
+                                                "wildfire"
+                                            ] = extract_wildfire_detail(
+                                                wildfire_report
+                                            )
+
+                                        print("WF_REPORT_END")
+
+                                    print("INCIDENT_DETAIL_MERGED")
+
+                                    print(
+                                        json.dumps(
+                                            issue,
+                                            indent=2,
+                                            ensure_ascii=False
+                                        )
+                                    )
+
+                                except Exception as e:
+                                    print(
+                                        f"INCIDENT_DETAIL_PARSE_ERROR={e}"
+                                    )
+
+                        for r in data["reply"]["DATA"]:
+
+                            malware_summary.append({
+                                "name": r.get("name"),
+                                "severity": r.get("severity"),
+                                "case_ids": r.get("case_ids"),
+                                "description": r.get("description"),
+                                "tags": r.get("tags")
+                            })
+
+                        print(
+                            "MALWARE_SUMMARY="
+                        )
+
+                        print(
+                            json.dumps(
+                                malware_summary,
+                                ensure_ascii=False,
+                                indent=2
+                            )
+                        )
+
+                        malware_summary = []
+
+                        for r in data["reply"]["DATA"]:
+
+                            malware_summary.append({
+                                "name": r.get("name"),
+                                "severity": r.get("severity"),
+                                "case_ids": r.get("case_ids"),
+                                "description": r.get("description"),
+                                "tags": r.get("tags")
+                            })
+
+                        print(
+                            "MALWARE_SUMMARY="
+                        )
+
+                        print(
+                            json.dumps(
+                                malware_summary,
+                                ensure_ascii=False,
+                                indent=2
+                            )
+                        )
 
                     result = json.dumps(
                         data,

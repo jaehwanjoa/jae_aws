@@ -1,6 +1,8 @@
 boto3
-mcp
-fastmcp
+
+mcp==1.24.0
+fastmcp==3.2.4
+
 fastapi
 uvicorn
 requests
@@ -9,3 +11,4 @@ authlib
 pydantic
 pydantic-settings
 xmltodict
+httpx
