@@ -67,9 +67,12 @@ async def get_incident_detail(
         contents = str(
             entry.get("contents", "")
         )
-
+        
+        #
+        # Issue Details
+        #
         if contents.startswith("Issue Details"):
-
+        
             result["description"] = (
                 contents
                 .replace(
@@ -78,9 +81,22 @@ async def get_incident_detail(
                 )
                 .strip()
             )
-
+        
             continue
         
+        #
+        # False Positive 여부
+        #
+        if (
+            "Resolved - False Positive"
+            in contents
+        ):
+            result["closing_reason"] = (
+                "Resolved - False Positive"
+            )
+        
+            continue
+   
         if (
             "Category Name | Malware" in contents
             or "| Category Name | Malware |" in contents
@@ -112,6 +128,8 @@ async def get_incident_detail(
                 "wf_file_path": r"\| File path \|\s*(.*?)\s*\|",
                 "finding_id": r"\| Findings \|\s*(.*?)\s*\|",
                 "host_ip": r"\| Host IP \|\s*(.*?)\s*\|",
+                "detection_rule_id":
+                    r"\| Detection Rule ID \|\s*(.*?)\s*\|",
                 "host_os": r"\| Host OS \|\s*(.*?)\s*\|",
 
                 "initiator_md5": r"\| Initiator MD5 \|\s*(.*?)\s*\|",
@@ -144,7 +162,16 @@ async def get_incident_detail(
                     r"\| Issue Domain \|\s*(.*?)\s*\|",
                 "category_name":
                     r"\| Category Name \|\s*(.*?)\s*\|",
-
+                "category":
+                    r"\| Category \|\s*(.*?)\s*\|",
+                "excluded":
+                    r"\| Excluded \|\s*(.*?)\s*\|",
+                
+                "excepted":
+                    r"\| Excepted \|\s*(.*?)\s*\|",
+                
+                "is_rule_triggered":
+                    r"\| Is rule triggered \|\s*(.*?)\s*\|",
                 "tags":
                     r"\| Tags \|\s*(.*?)\s*\|",
                 "original_tags":
