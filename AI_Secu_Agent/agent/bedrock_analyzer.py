@@ -14,6 +14,14 @@ class BedrockAnalyzer:
     @staticmethod
     def analyze(prompt):
 
+        print(
+            f"BEDROCK_MODEL_ID={MODEL_ID}"
+        )
+         
+        print(
+            f"PROMPT_LENGTH={len(prompt)}"
+        )    
+
         response = bedrock.invoke_model(
             modelId=MODEL_ID,
             body=json.dumps({
