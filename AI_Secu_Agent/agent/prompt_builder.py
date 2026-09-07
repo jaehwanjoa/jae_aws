@@ -228,9 +228,16 @@ Context에 존재하는 경우만 출력한다.
 - MITRE ATT&CK 의미
 - 행위의 정상 여부
 
+[Signature 해석]
+
+- SIGNATURE_UNAVAILABLE 은 미서명 상태를 의미할 수 있으나 악성을 의미하지 않는다.
+- SIGNATURE_UNAVAILABLE 만으로 악성 판단하지 않는다.
+
 [Malware 분석]
 
-- description을 기반으로 설명한다.
+- description은 탐지 엔진의 설명 문구일 수 있다.
+- description만으로 실제 행위가 발생했다고 단정하지 않는다.
+- description 내용과 실제 Incident Context를 구분하여 설명한다.
 - 사실 정보만 설명한다.
 - 실행 중이라고 추측하지 않는다.
 - 행위의 목적을 추측하지 않는다.
