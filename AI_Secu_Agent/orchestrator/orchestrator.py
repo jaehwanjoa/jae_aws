@@ -520,6 +520,31 @@ class Orchestrator:
                             wildfire_report
                         )
 
+                        prompt = PromptBuilder.build_malware_prompt(
+                            incident_detail_json,
+                            wildfire_report
+                        )
+                        
+                        print(
+                            "BEDROCK_PROMPT_START"
+                        )
+                        
+                        print(
+                            prompt[:3000]
+                        )
+                        
+                        analysis = BedrockAnalyzer.analyze(
+                            prompt
+                        )
+                        
+                        print(
+                            "BEDROCK_ANALYSIS_START"
+                        )
+                        
+                        print(
+                            analysis
+                        )
+                    
                     except Exception as e:
 
                         print(
