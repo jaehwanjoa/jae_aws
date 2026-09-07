@@ -160,8 +160,93 @@ def get_wildfire_report(sha256: str):
         response.text
     )
 
+def build_wf_summary(
+    wildfire_report
+):
 
+    wf_info = (
+        wildfire_report.get(
+            "wildfire",
+            {}
+        )
+    )
 
+    file_info = (
+        wf_info.get(
+            "file_info",
+            {}
+        )
+    )
+
+    reports = (
+        wf_info.get(
+            "task_info",
+            {}
+        )
+        .get(
+            "report",
+            []
+        )
+    )
+
+    summary_entries = []
+
+    if reports:
+
+        summary_entries = (
+            reports[0]
+            .get(
+                "summary",
+                {}
+            )
+            .get(
+                "entry",
+                []
+            )
+        )
+
+    behavior_summary = []
+
+    for item in summary_entries[:15]:
+
+        behavior_summary.append(
+            {
+                "behavior":
+                    item.get("@behavior"),
+
+                "score":
+                    item.get("@score"),
+
+                "description":
+                    item.get("#text")
+            }
+        )
+
+    return {
+
+        "sha256":
+            file_info.get(
+                "sha256"
+            ),
+
+        "filetype":
+            file_info.get(
+                "filetype"
+            ),
+
+        "size":
+            file_info.get(
+                "size"
+            ),
+
+        "malware":
+            file_info.get(
+                "malware"
+            ),
+
+        "summary":
+            behavior_summary
+    }
 
 def summarize_wildfire(report):
 
@@ -409,7 +494,18 @@ class Orchestrator:
                     "incident_type"
                 )
             )
-
+            
+            source_type = (
+                incident_detail_json.get(
+                    "source_type",
+                    "CSPM"
+                )
+            )
+            
+            print(
+                f"SOURCE_TYPE={source_type}"
+            )
+            
             print(
                 f"S3_INCIDENT_TYPE={incident_type}"
             )
@@ -496,6 +592,39 @@ class Orchestrator:
                     print(
                         "WF_REPORT_SKIP_NO_HASH"
                     )
+
+                    if source_type == "AGENT":
+                
+                        prompt = (
+                            PromptBuilder.build_agent_prompt(
+                                incident_detail_json,
+                                None
+                            )
+                        )
+                
+                        print(
+                            f"PROMPT_LENGTH={len(prompt)}"
+                        )
+                
+                        analysis = (
+                            BedrockAnalyzer.analyze(
+                                prompt
+                            )
+                        )
+                
+                        print(
+                            "BEDROCK_ANALYSIS_START"
+                        )
+                
+                        print(
+                            analysis
+                        )
+                
+                    elif source_type == "CSPM":
+                
+                        print(
+                            "CSPM_NO_SHA256_SKIP"
+                        )
                 
                 else:
                 
@@ -515,13 +644,44 @@ class Orchestrator:
                             "WF_REPORT_FETCH_OK"
                         )
                 
-                        print(
-                            wildfire_report
+                        wf_summary = (
+                            build_wf_summary(
+                                wildfire_report
+                            )
                         )
                 
-                        prompt = PromptBuilder.build_malware_prompt(
-                            incident_detail_json,
-                            wildfire_report
+                        print(
+                            "WF_SUMMARY="
+                        )
+                
+                        print(
+                            json.dumps(
+                                wf_summary,
+                                ensure_ascii=False,
+                                indent=2
+                            )
+                        )
+                
+                        if source_type == "CSPM":
+                
+                            prompt = (
+                                PromptBuilder.build_cspm_prompt(
+                                    incident_detail_json,
+                                    wf_summary
+                                )
+                            )
+                
+                        else:
+                
+                            prompt = (
+                                PromptBuilder.build_agent_prompt(
+                                    incident_detail_json,
+                                    wf_summary
+                                )
+                            )
+                
+                        print(
+                            f"PROMPT_LENGTH={len(prompt)}"
                         )
                 
                         print(
@@ -532,31 +692,19 @@ class Orchestrator:
                             prompt[:3000]
                         )
                 
-                        try:
-                
-                            analysis = BedrockAnalyzer.analyze(
+                        analysis = (
+                            BedrockAnalyzer.analyze(
                                 prompt
                             )
+                        )
                 
-                            print(
-                                "BEDROCK_ANALYSIS_START"
-                            )
+                        print(
+                            "BEDROCK_ANALYSIS_START"
+                        )
                 
-                            print(
-                                analysis
-                            )
-                
-                        except Exception as be:
-                
-                            print(
-                                f"BEDROCK_ERROR={str(be)}"
-                            )
-                
-                            import traceback
-                
-                            print(
-                                traceback.format_exc()
-                            )
+                        print(
+                            analysis
+                        )
                 
                     except Exception as e:
                 
@@ -569,7 +717,7 @@ class Orchestrator:
                         print(
                             traceback.format_exc()
                         )
-                
+                                      
         except Exception as e:
 
             print(
