@@ -72,6 +72,8 @@ async def get_incident_detail(
             "Category Name | Malware" in contents
             or "| Category Name | Malware |" in contents
             or "Initiator SHA256" in contents
+            or "| Category | MALWARE |" in contents
+            or "Malware was detected" in contents
         ):
 
             incident_type = "MALWARE"
@@ -94,6 +96,8 @@ async def get_incident_detail(
                 "asset_name": r"\| Cluster Name \|\s*(.*?)\s*\|",
                 "file_name": r"\| CGO name \|\s*(.*?)\s*\|",
                 "file_path": r"\| Initiator path \|\s*(.*?)\s*\|",
+                "wf_file_path": r"\| File path \|\s*(.*?)\s*\|",
+                "finding_id": r"\| Findings \|\s*(.*?)\s*\|",
             }
 
         elif (
@@ -139,7 +143,19 @@ async def get_incident_detail(
                     match.group(1).strip()
                 )
 
+
+        if (
+            result.get("wf_file_path")
+            and not result.get("file_name")
+        ):
+            result["file_name"] = (
+                result["wf_file_path"]
+                .replace("\\", "/")
+                .split("/")[-1]
+            )
+
         result["incident_type"] = incident_type
+
 
         logger.warning(
             "RESULT_AFTER_PARSE=%s",

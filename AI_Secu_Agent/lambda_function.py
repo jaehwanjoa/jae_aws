@@ -43,6 +43,34 @@ def lambda_handler(event, context):
             if isinstance(data, list):
                 data = data[0]
 
+            cspm_sha256 = None
+            cspm_verdict = None
+
+            if data.get("alert_source") == "COMPUTE_POLICY":
+
+                issue = (
+                    data
+                    .get("original_alert_json", {})
+                    .get("original_alert_json", {})
+                    .get("issues", [{}])[0]
+                )
+
+                normalized = issue.get(
+                    "xdm.issue.normalized_fields",
+                    {}
+                )
+
+                cspm_sha256 = normalized.get(
+                    "xdm.file.sha256"
+                )
+
+                cspm_verdict = normalized.get(
+                    "xdm.malware.verdict"
+                )
+
+                print(f"CSPM_SHA256={cspm_sha256}")
+                print(f"CSPM_VERDICT={cspm_verdict}")
+
             issue_id = data.get("internal_id")
 
             print(
@@ -50,7 +78,9 @@ def lambda_handler(event, context):
             )
 
             return Orchestrator.process_s3_incident(
-                issue_id
+                issue_id,
+                cspm_sha256,
+                cspm_verdict
             )
 
     #################################################
@@ -68,3 +98,5 @@ def lambda_handler(event, context):
         question=question,
         customer=customer
     )
+
+#
