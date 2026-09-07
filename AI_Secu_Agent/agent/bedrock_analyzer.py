@@ -1,5 +1,6 @@
 import json
 import boto3
+import os
 
 MODEL_ID = os.environ["MODEL_ID"]
 
