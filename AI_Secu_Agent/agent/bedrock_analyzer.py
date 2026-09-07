@@ -1,12 +1,12 @@
 import json
 import boto3
 
+MODEL_ID = os.environ["MODEL_ID"]
+
 bedrock = boto3.client(
     "bedrock-runtime",
     region_name="ap-northeast-2"
 )
-
-MODEL_ID = "anthropic.claude-sonnet-4"
 
 class BedrockAnalyzer:
 
