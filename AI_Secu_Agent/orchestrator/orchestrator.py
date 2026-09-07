@@ -491,71 +491,91 @@ class Orchestrator:
                         print(
                             f"S3_LOOKUP_ERROR={e}"
                         )
-
+                        
                 if not wf_hash:
-
+                
                     print(
                         "WF_REPORT_SKIP_NO_HASH"
                     )
-
+                
                 else:
-
+                
                     print(
                         "WF_REPORT_START"
                     )
-
+                
                     try:
-
+                
                         wildfire_report = (
                             get_wildfire_report(
                                 wf_hash
                             )
                         )
-
+                
                         print(
                             "WF_REPORT_FETCH_OK"
                         )
-
+                
                         print(
                             wildfire_report
                         )
-
+                
                         prompt = PromptBuilder.build_malware_prompt(
                             incident_detail_json,
                             wildfire_report
                         )
-                        
+                
                         print(
                             "BEDROCK_PROMPT_START"
                         )
-                        
+                
                         print(
                             prompt[:3000]
                         )
-                        
-                        analysis = BedrockAnalyzer.analyze(
-                            prompt
-                        )
-                        
-                        print(
-                            "BEDROCK_ANALYSIS_START"
-                        )
-                        
-                        print(
-                            analysis
-                        )
-                    
+                
+                        try:
+                
+                            analysis = BedrockAnalyzer.analyze(
+                                prompt
+                            )
+                
+                            print(
+                                "BEDROCK_ANALYSIS_START"
+                            )
+                
+                            print(
+                                analysis
+                            )
+                
+                        except Exception as be:
+                
+                            print(
+                                f"BEDROCK_ERROR={str(be)}"
+                            )
+                
+                            import traceback
+                
+                            print(
+                                traceback.format_exc()
+                            )
+                
                     except Exception as e:
-
+                
                         print(
-                            f"WF_REPORT_ERROR={e}"
+                            f"WF_REPORT_ERROR={str(e)}"
                         )
-
-            else:
-
-                print(
-                    f"WF_SKIP_TYPE={incident_type}"
-                )
+                
+                        import traceback
+                
+                        print(
+                            traceback.format_exc()
+                        )
+                
+                else:
+                
+                    print(
+                        f"WF_SKIP_TYPE={incident_type}"
+                    )
 
         except Exception as e:
 
