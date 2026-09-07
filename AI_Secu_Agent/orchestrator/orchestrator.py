@@ -423,8 +423,6 @@ class Orchestrator:
 
             if incident_type == "MALWARE":
 
-
-
                 sha256 = (
                     incident_detail_json.get(
                         "sha256"
