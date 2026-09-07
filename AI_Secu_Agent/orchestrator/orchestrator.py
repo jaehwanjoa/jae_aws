@@ -13,6 +13,9 @@ from agent.cortex_query import build_issue_query
 from agent.summarizer import summarize_result
 from agent.prompt_builder import PromptBuilder
 from agent.bedrock_analyzer import BedrockAnalyzer
+from util.mail_sender import (
+    send_mail
+)
 
 WF_CACHE_TTL = 3600
 
@@ -716,7 +719,45 @@ class Orchestrator:
                         print(
                             analysis
                         )
-                
+                        
+                        subject = (
+                            f"[Cortex {source_type}] "
+                            f"[{incident_detail_json.get('severity')}] "
+                            f"{incident_detail_json.get('issue_name')}"
+                        )
+                        
+                        body = f"""
+                        Incident ID : {incident_detail_json.get('incident_id')}
+                        Source Type : {source_type}
+                        Severity    : {incident_detail_json.get('severity')}
+                        Category    : {incident_detail_json.get('category')}
+                        Finding ID  : {incident_detail_json.get('finding_id')}
+                        Detection Rule ID : {incident_detail_json.get('detection_rule_id')}
+                        
+                        ==================================================
+                        
+                        {analysis}
+                        """
+                        
+                        try:
+                        
+                            send_mail(
+                                subject=subject,
+                                body=body,
+                                sender=os.environ["MAIL_SENDER"],
+                                receiver=os.environ["MAIL_RECEIVER"]
+                            )
+                        
+                            print(
+                                "MAIL_SENT"
+                            )
+                        
+                        except Exception as mail_error:
+                        
+                            print(
+                                f"MAIL_SEND_ERROR={str(mail_error)}"
+                            )
+                       
                     except Exception as e:
                 
                         print(
