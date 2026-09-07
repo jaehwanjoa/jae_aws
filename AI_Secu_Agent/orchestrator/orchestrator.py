@@ -1,7 +1,6 @@
 import json
 import boto3
 import os
-import os
 import requests
 import re
 import uuid
