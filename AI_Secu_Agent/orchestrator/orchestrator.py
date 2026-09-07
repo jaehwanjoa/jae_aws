@@ -571,12 +571,6 @@ class Orchestrator:
                             traceback.format_exc()
                         )
                 
-                else:
-                
-                    print(
-                        f"WF_SKIP_TYPE={incident_type}"
-                    )
-
         except Exception as e:
 
             print(
