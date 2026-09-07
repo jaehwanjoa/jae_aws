@@ -497,11 +497,22 @@ class Orchestrator:
             
             source_type = (
                 incident_detail_json.get(
-                    "source_type",
-                    "CSPM"
+                    "source_type"
                 )
             )
             
+            if not source_type:
+            
+                if (
+                    incident_detail_json.get("initiator_cmd")
+                    or incident_detail_json.get("mitre_tactic")
+                    or incident_detail_json.get("causality_id")
+                    or incident_detail_json.get("actor_process_instance_id")
+                ):
+                    source_type = "AGENT"
+                else:
+                    source_type = "CSPM"
+        
             print(
                 f"SOURCE_TYPE={source_type}"
             )
