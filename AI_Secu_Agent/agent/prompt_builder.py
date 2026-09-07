@@ -55,6 +55,7 @@ class PromptBuilder:
 - Action
 - Excluded
 - Excepted
+- Is rule triggered
 
 분석은 파일 기반 관점으로 수행한다.
 
@@ -70,6 +71,13 @@ class PromptBuilder:
 - WildFire malware 가 "no" 인 경우 악성으로 단정하지 않는다.
 - WildFire behavior 만으로 악성으로 판단하지 않는다.
 - 정상 소프트웨어에서 발생 가능한 행위는 정상 사용 가능성을 함께 설명한다.
+- closing_reason 이 존재하는 경우 함께 설명한다.
+- closing_reason 이 "Resolved - False Positive" 인 경우 해당 Incident가 False Positive로 종료된 이력이 확인된다고 설명한다.
+- closing_reason 값만으로 탐지 결과 전체를 무효화하지 않는다.
+- Excluded, Excepted, Is rule triggered 값이 존재하면 정책 적용 상태를 설명한다.
+- 값이 false 인 경우 정책 예외 등록 여부가 확인되지 않는다고 설명한다.
+- Tags 또는 Original Tags 에 "Compute Policy" 가 존재하는 경우 Compute Policy 기반 탐지로 설명한다.
+- Compute Policy 탐지라는 사실만으로 실제 침해를 단정하지 않는다.
 
 다음 내용은 명확한 근거가 있는 경우에만 설명한다.
 
@@ -102,6 +110,7 @@ class PromptBuilder:
 출력 형식
 
 1. 파일 정보
+- Source Type
 - 파일 이름
 - SHA256
 - 파일 경로
@@ -131,7 +140,10 @@ Context에 존재하는 경우만 출력한다.
 
 5. 종합 분석 의견
 
-6. 권장 조치
+6. Incident 처리 이력
+- Closing Reason
+
+7. 권장 조치
 
 규칙
 
@@ -233,6 +245,18 @@ Context에 존재하는 경우만 출력한다.
 - SIGNATURE_UNAVAILABLE 은 미서명 상태를 의미할 수 있으나 악성을 의미하지 않는다.
 - SIGNATURE_UNAVAILABLE 만으로 악성 판단하지 않는다.
 
+[Container Runtime 해석]
+
+- runc
+- containerd
+- dockerd
+- kubelet
+- cri-o
+
+등의 프로세스는 컨테이너 런타임 구성요소일 수 있다.
+- 해당 프로세스가 존재한다는 사실만으로 악성으로 판단하지 않는다.
+- WildFire malware=no 인 경우 정상 런타임 파일 가능성을 함께 설명한다.
+
 [Malware 분석]
 
 - description은 탐지 엔진의 설명 문구일 수 있다.
@@ -242,6 +266,9 @@ Context에 존재하는 경우만 출력한다.
 - 실행 중이라고 추측하지 않는다.
 - 행위의 목적을 추측하지 않는다.
 - Context에 없는 프로세스 트리를 생성하지 않는다.
+- closing_reason 이 존재하는 경우 함께 설명한다.
+- closing_reason 이 "Resolved - False Positive" 인 경우 False Positive 종료 이력이 확인된다고 설명한다.
+- closing_reason 값만으로 실제 탐지 결과 전체를 무효화하지 않는다.
 
 [WildFire 분석]
 
@@ -260,6 +287,7 @@ Context에 존재하는 경우만 출력한다.
 출력 형식
 
 1. 이벤트 정보
+- Source Type
 - 이슈명
 - 심각도
 - 호스트
