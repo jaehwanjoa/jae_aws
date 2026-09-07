@@ -144,6 +144,11 @@ async def get_incident_detail(
                     r"\| Issue Domain \|\s*(.*?)\s*\|",
                 "category_name":
                     r"\| Category Name \|\s*(.*?)\s*\|",
+
+                "tags":
+                    r"\| Tags \|\s*(.*?)\s*\|",
+                "original_tags":
+                    r"\| Original Tags \|\s*(.*?)\s*\|"
             }
 
         elif (
@@ -199,18 +204,23 @@ async def get_incident_detail(
                 .replace("\\", "/")
                 .split("/")[-1]
             )
-
+            
         result["incident_type"] = incident_type
-
-
-        logger.warning(
-            "RESULT_AFTER_PARSE=%s",
-            json.dumps(
-                result,
-                ensure_ascii=False
-            )
+        
+        #
+        # Source Type 판별
+        #
+        tags = (
+            str(result.get("tags", ""))
+            + " "
+            + str(result.get("original_tags", ""))
         )
-
+        
+        if "Compute Policy" in tags:
+            result["source_type"] = "CSPM"
+        else:
+            result["source_type"] = "AGENT"
+            
         logger.warning(
             "RESULT_AFTER_PARSE=%s",
             json.dumps(
