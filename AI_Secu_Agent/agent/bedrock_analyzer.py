@@ -17,7 +17,7 @@ class BedrockAnalyzer:
         print(
             f"BEDROCK_MODEL_ID={MODEL_ID}"
         )
-         
+         
         print(
             f"PROMPT_LENGTH={len(prompt)}"
         )    
