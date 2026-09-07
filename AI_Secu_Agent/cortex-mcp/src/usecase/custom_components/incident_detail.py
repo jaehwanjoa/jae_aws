@@ -59,6 +59,8 @@ async def get_incident_detail(
     result = {
         "incident_id": incident_id,
     }
+    
+    incident_type = None
 
     for entry in entries:
 
@@ -66,8 +68,19 @@ async def get_incident_detail(
             entry.get("contents", "")
         )
 
-        incident_type = None
+        if contents.startswith("Issue Details"):
 
+            result["description"] = (
+                contents
+                .replace(
+                    "Issue Details",
+                    ""
+                )
+                .strip()
+            )
+
+            continue
+        
         if (
             "Category Name | Malware" in contents
             or "| Category Name | Malware |" in contents
@@ -98,6 +111,39 @@ async def get_incident_detail(
                 "file_path": r"\| Initiator path \|\s*(.*?)\s*\|",
                 "wf_file_path": r"\| File path \|\s*(.*?)\s*\|",
                 "finding_id": r"\| Findings \|\s*(.*?)\s*\|",
+                "host_ip": r"\| Host IP \|\s*(.*?)\s*\|",
+                "host_os": r"\| Host OS \|\s*(.*?)\s*\|",
+
+                "initiator_md5": r"\| Initiator MD5 \|\s*(.*?)\s*\|",
+                "initiator_signature": r"\| Initiator signature \|\s*(.*?)\s*\|",
+                "process_execution_signature":
+                    r"\| Process execution signature \|\s*(.*?)\s*\|",
+                "os_parent_signature":
+                    r"\| OS Parent Signature \|\s*(.*?)\s*\|",
+                "cgo_name":
+                    r"\| CGO name \|\s*(.*?)\s*\|",
+                "cgo_path":
+                    r"\| CGO path \|\s*(.*?)\s*\|",
+                "cgo_cmd":
+                    r"\| CGO CMD \|\s*(.*?)\s*\|",
+                "cgo_sha256":
+                    r"\| CGO SHA256 \|\s*(.*?)\s*\|",
+                "cgo_signature":
+                    r"\| CGO signature \|\s*(.*?)\s*\|",
+                "mitre_tactic":
+                    r"\| Mitre ATT&CK Tactic \|\s*(.*?)\s*\|",
+                "mitre_technique":
+                    r"\| Mitre ATT&CK Technique \|\s*(.*?)\s*\|",
+                "actor_process_instance_id":
+                    r"\| Actor Process Instance ID \|\s*(.*?)\s*\|",
+                "causality_id":
+                    r"\| xdm\.source\.process\.causality_id \|\s*(.*?)\s*\|",
+                "action":
+                    r"\| Action \|\s*(.*?)\s*\|",
+                "issue_domain":
+                    r"\| Issue Domain \|\s*(.*?)\s*\|",
+                "category_name":
+                    r"\| Category Name \|\s*(.*?)\s*\|",
             }
 
         elif (
@@ -172,8 +218,6 @@ async def get_incident_detail(
                 ensure_ascii=False
             )
         )
-
-        break
 
     return create_response(data=result)
 
