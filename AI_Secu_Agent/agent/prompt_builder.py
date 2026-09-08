@@ -104,6 +104,15 @@ class PromptBuilder:
 - "확인되었다", "포함되어 있다", "관찰되었다" 형태로 설명한다.
 - score 값 자체만으로 위험도를 판단하지 않는다.
 - malware 값과 overall_verdict를 우선 사용한다.
+- malware=no 인 경우 WildFire 상세 행위 목록을 출력하지 않는다.
+- malware=no 인 경우 API 호출 목록을 출력하지 않는다.
+- malware=no 인 경우 동적 분석 결과를 출력하지 않는다.
+- malware=no 인 경우 파일 유형, 파일 크기, 최종 판정만 출력한다.
+- malware=no 인 경우 "악성 아님" 결과만 설명한다.
+  WildFire 상세 행위 목록은 출력하지 않는다.
+- 해당 경우 WildFire 최종 판정만 간단히 설명한다.
+- WildFire behavior 목록을 나열하지 않는다.
+- 악성 행위로 오인될 수 있는 API 목록 나열을 금지한다.
 
 응답은 반드시 한국어로 작성한다.
 
@@ -128,15 +137,29 @@ Context에 존재하는 경우만 출력한다.
 
 4. WildFire 분석 결과
 
-최종 판정
+WildFire 출력 규칙
+- malware=no 인 경우 아래 항목만 출력한다.
 
-정적 분석
-- 주요 분석 결과
+  - 파일 유형
+  - 파일 크기
+  - 최종 판정
 
-동적 분석
-- 분석 환경
-- 실행 프로세스
-- 탐지 행위
+- malware=no 인 경우
+  주요 행위
+  탐지 행위
+  API 호출 목록
+  동적 분석 결과
+
+  를 출력하지 않는다.
+
+- malware=yes 인 경우에만
+
+  정적 분석
+  동적 분석
+  주요 행위
+  탐지 행위
+
+  를 출력한다.
 
 5. 종합 분석 의견
 
@@ -295,6 +318,15 @@ Context에 존재하는 경우만 출력한다.
 - "확인되었다", "포함되어 있다", "관찰되었다" 형태로 설명한다.
 - score 값 자체만으로 위험도를 판단하지 않는다.
 - malware 값과 overall_verdict를 우선 사용한다.
+- malware=no 인 경우 WildFire 상세 행위 목록을 출력하지 않는다.
+- malware=no 인 경우 API 호출 목록을 출력하지 않는다.
+- malware=no 인 경우 동적 분석 결과를 출력하지 않는다.
+- malware=no 인 경우 파일 유형, 파일 크기, 최종 판정만 출력한다.
+- malware=no 인 경우 "악성 아님" 결과만 설명한다.
+  WildFire 상세 행위 목록은 출력하지 않는다.
+- 해당 경우 WildFire 최종 판정만 간단히 설명한다.
+- WildFire behavior 목록을 나열하지 않는다.
+- 악성 행위로 오인될 수 있는 API 목록 나열을 금지한다.
 
 응답은 반드시 한국어로 작성한다.
 
@@ -351,9 +383,31 @@ Context에 존재하는 경우만 출력한다.
 6. 오탐 가능성 평가
 
 7. WildFire 분석 결과
-(존재하는 경우만)
 
+WildFire 출력 규칙
+- malware 값이 "no" 이고 overall_verdict가 benign 또는 grayware 인 경우
+  아래 항목만 출력한다.
+
+  - 파일 유형
+  - 파일 크기
+  - 최종 판정
+
+- malware=no 인 경우
+  "주요 행위", "탐지 행위", "API 호출", "동적 분석 결과"를 출력하지 않는다.
+
+- malware=yes 인 경우에만
+  주요 행위, API 호출, 동적 분석 결과를 출력한다.
+
+- WildFire behavior.details, api 호출 목록, 행위 목록은
+  malware=yes 인 경우에만 설명한다.
+
+- benign 또는 grayware 판정인 경우
+  WildFire 행위 목록을 나열하지 않는다.
+  
 8. 종합 분석 의견
+- malware=no 인 경우 첫 문장에 악성 아님을 우선 설명한다.
+- malware=no 인 경우 WildFire 행위를 근거로 위험도를 높게 평가하지 않는다.
+- WildFire 상세 행위를 반복 설명하지 않는다.
 
 9. 권장 조치
 
