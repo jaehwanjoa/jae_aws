@@ -32,7 +32,14 @@ MAIL_RECEIVERS = [
     "jaehwan.myeong@cj.net",
     "dahye.choi3@cj.net",
     "seeun.kim10@cj.net",
-    "riyeong.kim@cj.net"
+    "riyeong.kim@cj.net",
+    "beobkyung.kim@cj.net",
+    "dj.wie@cj.net",
+    "hs.jung16@cj.net",
+    "jungyu.ahn@cj.net",
+    "kimsh1021@cj.net",
+    "kyounggon.shin@cj.net",
+    "yeongil.kim@cj.net"
 ]
 
 def save_filename_index(
