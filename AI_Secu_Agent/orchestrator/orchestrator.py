@@ -727,6 +727,12 @@ class Orchestrator:
                         
                         analysis_html = analysis.replace("\n", "<br>")
                         
+                        subject = (
+                            f"[Cortex {source_type}] "
+                            f"[{incident_detail_json.get('severity')}] "
+                            f"{incident_detail_json.get('issue_name')}"
+                        )
+                        
                         severity = incident_detail_json.get("severity", "Unknown")
                         
                         severity_color = {
