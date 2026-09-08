@@ -818,11 +818,7 @@ class Orchestrator:
                         <br>
                         
                         <hr>
-                        
-                        <div style="font-size:11px;color:#666;">
-                        본 이메일 및 첨부파일은 지정된 수신인을 위한 내용입니다.
-                        </div>
-                        
+                                           
                         </div>
                         
                         </body>
