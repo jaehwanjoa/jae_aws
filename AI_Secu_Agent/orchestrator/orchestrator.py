@@ -725,6 +725,8 @@ class Orchestrator:
                             analysis
                         )
                         
+                        analysis_html = analysis.replace("\n", "<br>")
+                        
                         subject = (
                             f"[Cortex {source_type}] "
                             f"[{incident_detail_json.get('severity')}] "
@@ -732,17 +734,14 @@ class Orchestrator:
                         )
                         
                         body = f"""
-                        Incident ID : {incident_detail_json.get('incident_id')}
-                        Source Type : {source_type}
-                        Severity    : {incident_detail_json.get('severity')}
-                        Category    : {incident_detail_json.get('category')}
-                        Finding ID  : {incident_detail_json.get('finding_id')}
-                        Detection Rule ID : {incident_detail_json.get('detection_rule_id')}
-                        
-                        ==================================================
-                        
-                        {analysis}
-                        """
+                        <html>
+                        <body>
+                        ...
+                        {analysis_html}
+                        ...
+                        </body>
+                        </html>
+                        """                        
 
                         for receiver in MAIL_RECEIVERS:
                         
