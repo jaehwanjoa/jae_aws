@@ -53,6 +53,13 @@ class PromptBuilder:
 - Category
 - Issue Domain
 - Action
+- Cluster Name
+- Namespace
+- Container Name
+- Container ID
+- Image Name
+- Account ID
+- Asset Name
 - Excluded
 - Excepted
 - Is rule triggered
@@ -118,12 +125,16 @@ class PromptBuilder:
 
 출력 형식
 
-1. 파일 정보
+1. 이벤트 정보
 - Source Type
-- 파일 이름
-- SHA256
-- 파일 경로
+- 이슈명
 - 심각도
+- 클러스터
+- 네임스페이스
+- 컨테이너
+- 이미지
+- 호스트
+- 사용자
 
 2. Malware 분석
 
@@ -261,6 +272,13 @@ WildFire 출력 규칙
 - Hostname
 - Host OS
 - Action
+- Cluster Name
+- Namespace
+- Container Name
+- Container ID
+- Image Name
+- Account ID
+- Asset Name
 - Category Name
 - Issue Domain
 
@@ -336,6 +354,10 @@ WildFire 출력 규칙
 - Source Type
 - 이슈명
 - 심각도
+- 클러스터
+- 네임스페이스
+- 컨테이너
+- 이미지
 - 호스트
 - 사용자
 
@@ -385,25 +407,14 @@ WildFire 출력 규칙
 7. WildFire 분석 결과
 
 WildFire 출력 규칙
-- malware 값이 "no" 이고 overall_verdict가 benign 또는 grayware 인 경우
-  아래 항목만 출력한다.
+- malware=no 인 경우 WildFire 상세 행위 목록을 출력하지 않는다.
+- malware=no 인 경우 API 호출 목록을 출력하지 않는다.
+- malware=no 인 경우 동적 분석 결과를 출력하지 않는다.
+- malware=no 인 경우 파일 유형, 파일 크기, 최종 판정만 출력한다.
+- malware=no 인 경우 "악성 아님" 결과만 설명한다.
+- malware=yes 인 경우에만 주요 행위, API 호출, 동적 분석 결과를 출력한다.
+- WildFire behavior.details, api 호출 목록, 행위 목록은 malware=yes 인 경우에만 설명한다.
 
-  - 파일 유형
-  - 파일 크기
-  - 최종 판정
-
-- malware=no 인 경우
-  "주요 행위", "탐지 행위", "API 호출", "동적 분석 결과"를 출력하지 않는다.
-
-- malware=yes 인 경우에만
-  주요 행위, API 호출, 동적 분석 결과를 출력한다.
-
-- WildFire behavior.details, api 호출 목록, 행위 목록은
-  malware=yes 인 경우에만 설명한다.
-
-- benign 또는 grayware 판정인 경우
-  WildFire 행위 목록을 나열하지 않는다.
-  
 8. 종합 분석 의견
 - malware=no 인 경우 첫 문장에 악성 아님을 우선 설명한다.
 - malware=no 인 경우 WildFire 행위를 근거로 위험도를 높게 평가하지 않는다.
