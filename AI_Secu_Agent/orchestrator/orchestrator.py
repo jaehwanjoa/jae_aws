@@ -727,21 +727,90 @@ class Orchestrator:
                         
                         analysis_html = analysis.replace("\n", "<br>")
                         
-                        subject = (
-                            f"[Cortex {source_type}] "
-                            f"[{incident_detail_json.get('severity')}] "
-                            f"{incident_detail_json.get('issue_name')}"
-                        )
+                        severity = incident_detail_json.get("severity", "Unknown")
+                        
+                        severity_color = {
+                            "Critical": "#d32f2f",
+                            "High": "#f57c00",
+                            "Medium": "#fbc02d",
+                            "Low": "#388e3c"
+                        }.get(severity, "#1976d2")
                         
                         body = f"""
                         <html>
-                        <body>
-                        ...
+                        <head>
+                        <meta charset="UTF-8">
+                        </head>
+                        
+                        <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
+                        
+                        <div style="
+                            background:white;
+                            border-radius:10px;
+                            padding:20px;
+                            border:1px solid #dddddd;
+                        ">
+                        
+                        <h2 style="margin-top:0;">
+                        🚨 Cortex Security Incident Report
+                        </h2>
+                        
+                        <div style="
+                            background:{severity_color};
+                            color:white;
+                            padding:10px;
+                            border-radius:6px;
+                            font-weight:bold;
+                        ">
+                        Severity : {severity}
+                        </div>
+                        
+                        <br>
+                        
+                        <table style="border-collapse:collapse;width:100%;">
+                        <tr>
+                            <td style="border:1px solid #ddd;padding:8px;"><b>Incident ID</b></td>
+                            <td style="border:1px solid #ddd;padding:8px;">{incident_detail_json.get('incident_id')}</td>
+                        </tr>
+                        <tr>
+                            <td style="border:1px solid #ddd;padding:8px;"><b>Source Type</b></td>
+                            <td style="border:1px solid #ddd;padding:8px;">{source_type}</td>
+                        </tr>
+                        <tr>
+                            <td style="border:1px solid #ddd;padding:8px;"><b>Issue Name</b></td>
+                            <td style="border:1px solid #ddd;padding:8px;">{incident_detail_json.get('issue_name')}</td>
+                        </tr>
+                        </table>
+                        
+                        <br>
+                        
+                        <div style="
+                            background:#f8f9fa;
+                            border-left:5px solid #1976d2;
+                            padding:15px;
+                        ">
+                        
+                        <h3 style="margin-top:0;">
+                        분석 결과
+                        </h3>
+                        
                         {analysis_html}
-                        ...
+                        
+                        </div>
+                        
+                        <br>
+                        
+                        <hr>
+                        
+                        <div style="font-size:11px;color:#666;">
+                        본 이메일 및 첨부파일은 지정된 수신인을 위한 내용입니다.
+                        </div>
+                        
+                        </div>
+                        
                         </body>
                         </html>
-                        """                        
+                        """                                           
 
                         for receiver in MAIL_RECEIVERS:
                         
