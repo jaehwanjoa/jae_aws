@@ -743,26 +743,29 @@ class Orchestrator:
                         
                         {analysis}
                         """
+
+                        for receiver in MAIL_RECEIVERS:
                         
-                        try:
+                            try:
                         
-                            send_mail(
-                                subject=subject,
-                                body=body,
-                                sender=os.environ["MAIL_SENDER"],
-                                receiver=os.environ["MAIL_RECEIVER"]
-                            )
+                                send_mail(
+                                    subject=subject,
+                                    body=body,
+                                    sender=MAIL_SENDER,
+                                    receiver=receiver
+                                )
                         
-                            print(
-                                "MAIL_SENT"
-                            )
+                                print(
+                                    f"MAIL_SENT={receiver}"
+                                )
                         
-                        except Exception as mail_error:
+                            except Exception as mail_error:
                         
-                            print(
-                                f"MAIL_SEND_ERROR={str(mail_error)}"
-                            )
-                       
+                                print(
+                                    f"MAIL_SEND_ERROR={receiver}: "
+                                    f"{type(mail_error).__name__}: {mail_error}"
+                                )                        
+                                     
                     except Exception as e:
                 
                         print(
