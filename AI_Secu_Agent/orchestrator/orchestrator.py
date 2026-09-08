@@ -25,6 +25,11 @@ s3_client = boto3.client(
     "s3"
 )
 
+MAIL_SENDER = "Cloud Analytics <jaehwan.myeong@cj.net>"
+
+MAIL_RECEIVERS = [
+    "jaehwan.myeong@cj.net"
+]
 
 def save_filename_index(
     file_name,
