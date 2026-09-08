@@ -312,6 +312,38 @@ Context에 존재하는 경우만 출력한다.
 3. ATT&CK 분석
 
 4. 주요 분석 근거
+반드시 아래 항목을 출력한다.
+
+- Initiator
+- Initiator CMD
+- Initiator SHA256
+- Initiator MD5
+- Initiator Signature
+- OS Parent Signature
+- CGO CMD
+- CGO SHA256
+- CGO Signature
+- Host OS
+
+출력 예시
+- Initiator: 값
+- Initiator CMD: 값
+- Initiator SHA256: 값
+- Initiator MD5: 값
+- Initiator Signature: 값
+- OS Parent Signature: 값
+- CGO CMD: 값
+- CGO SHA256: 값
+- CGO Signature: 값
+- Host OS: 값
+
+규칙
+- 위 항목은 절대 생략하지 않는다.
+- Context에 존재하면 원문 값을 그대로 출력한다.
+- Command Line은 요약하지 않는다.
+- SHA256은 원문 그대로 출력한다.
+- Signature는 원문 그대로 출력한다.
+- 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
 
 5. IOC 정보
 (없으면 "확인되지 않음")
@@ -357,4 +389,7 @@ Context에 존재하는 경우만 출력한다.
 - 값이 없으면 "확인되지 않음" 으로 작성한다.
 - ATT&CK 정보는 Tactic 과 Technique 를 구분하여 작성한다.
 - 근거가 없는 경우 "추가 권장 조치 없음" 만 출력한다
+- 출력 형식에 정의된 항목은 절대 생략하지 않는다.
+- Context에 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
+- 모델이 중요하지 않다고 판단하더라도 출력 형식의 필드는 반드시 출력한다.
 """
