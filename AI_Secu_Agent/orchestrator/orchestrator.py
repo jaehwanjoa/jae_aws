@@ -28,7 +28,11 @@ s3_client = boto3.client(
 MAIL_SENDER = "cp-report@cj.net"
 
 MAIL_RECEIVERS = [
-    "jaehwan.myeong@cj.net"
+    "bs.chae@cj.net",
+    "jaehwan.myeong@cj.net",
+    "dahye.choi3@cj.net",
+    "seeun.kim10@cj.net",
+    "riyeong.kim@cj.net"
 ]
 
 def save_filename_index(
