@@ -25,7 +25,7 @@ s3_client = boto3.client(
     "s3"
 )
 
-MAIL_SENDER = "Cloud Analytics <jaehwan.myeong@cj.net>"
+MAIL_SENDER = "Cloud Analytics <cp-report@cj.net>"
 
 MAIL_RECEIVERS = [
     "jaehwan.myeong@cj.net"
