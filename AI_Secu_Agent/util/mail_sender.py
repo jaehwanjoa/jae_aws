@@ -5,14 +5,14 @@ ses = boto3.client(
     region_name="ap-northeast-2"
 )
 
-
 def send_mail(
     subject: str,
     body: str,
     receiver: str,
     sender: str
 ):
-    ses.send_email(
+
+    response = ses.send_email(
         Source=sender,
         Destination={
             "ToAddresses": [
@@ -21,12 +21,18 @@ def send_mail(
         },
         Message={
             "Subject": {
-                "Data": subject
+                "Data": subject,
+                "Charset": "UTF-8"
             },
             "Body": {
-                "Text": {
-                    "Data": body
+                "Html": {
+                    "Data": body,
+                    "Charset": "UTF-8"
                 }
             }
         }
+    )
+
+    print(
+        f"SES_MESSAGE_ID={response['MessageId']}"
     )
