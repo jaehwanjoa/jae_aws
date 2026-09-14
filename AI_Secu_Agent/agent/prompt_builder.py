@@ -160,7 +160,7 @@ class PromptBuilder:
 Context에 존재하는 경우만 출력한다.
 존재하지 않으면 "확인되지 않음" 으로 작성한다.
 
-4. IOC 정보
+4. IOC 및 주요 분석 근거
 
 IOC는 아래 항목을 우선 사용한다.
 
@@ -408,9 +408,18 @@ WildFire 출력 규칙
 
 2. 행위 분석
 
+규칙
+
+- Command Line 에서 직접 확인되는 사실만 설명한다.
+- Command Line 만으로 수행된 작업을 단정하지 않는다.
+- Parent / Child 관계는 Context 에 존재하는 경우만 설명한다.
+- 실제 관찰된 프로세스 정보만 설명한다.
+- 추정된 행위를 생성하지 않는다.
+
 3. ATT&CK 분석
 
-4. 주요 분석 근거
+4. IOC 및 주요 분석 근거
+
 반드시 아래 항목을 출력한다.
 
 - Initiator
@@ -419,51 +428,40 @@ WildFire 출력 규칙
 - Initiator MD5
 - Initiator Signature
 - OS Parent Signature
-- CGO CMD
 - CGO SHA256
-- CGO Signature
+- Host IP
+- Hostname
+- File Path
 - Host OS
 
 출력 예시
+
 - Initiator: 값
 - Initiator CMD: 값
 - Initiator SHA256: 값
 - Initiator MD5: 값
 - Initiator Signature: 값
 - OS Parent Signature: 값
-- CGO CMD: 값
 - CGO SHA256: 값
-- CGO Signature: 값
+- Host IP: 값
+- Hostname: 값
+- File Path: 값
 - Host OS: 값
 
 규칙
+
 - 위 항목은 절대 생략하지 않는다.
 - Context에 존재하면 원문 값을 그대로 출력한다.
-- Command Line은 요약하지 않는다.
-- SHA256은 원문 그대로 출력한다.
-- Signature는 원문 그대로 출력한다.
-- 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
+- Command Line은 1회만 출력한다.
+- Initiator CMD 와 CGO CMD 가 동일한 경우 CGO CMD 는 출력하지 않는다.
+- Initiator SHA256 과 CGO SHA256 이 동일한 경우 1회만 출력한다.
+- SHA256 은 원문 그대로 출력한다.
+- Signature 는 원문 그대로 출력한다.
+- 값이 없을 경우에만 "확인되지 않음" 으로 작성한다.
 
-5. IOC 정보
+5. 오탐 가능성 평가
 
-IOC는 아래 항목을 우선 사용한다.
-
-- Initiator SHA256
-- Initiator MD5
-- CGO SHA256
-- Host IP
-- Hostname
-- File Path
-- Command Line
-
-위 값이 하나라도 존재하면 반드시 출력한다.
-
-모든 IOC 값이 없는 경우에만
-"확인되지 않음" 으로 작성한다.
-
-6. 오탐 가능성 평가
-
-7. WildFire 분석 결과
+6. WildFire 분석 결과
 
 WildFire 출력 규칙
 - malware=no 인 경우 WildFire 상세 행위 목록을 출력하지 않는다.
@@ -474,12 +472,12 @@ WildFire 출력 규칙
 - malware=yes 인 경우에만 주요 행위, API 호출, 동적 분석 결과를 출력한다.
 - WildFire behavior.details, api 호출 목록, 행위 목록은 malware=yes 인 경우에만 설명한다.
 
-8. 종합 분석 의견
+7. 종합 분석 의견
 - malware=no 인 경우 첫 문장에 악성 아님을 우선 설명한다.
 - malware=no 인 경우 WildFire 행위를 근거로 위험도를 높게 평가하지 않는다.
 - WildFire 상세 행위를 반복 설명하지 않는다.
 
-9. 권장 조치
+8. 권장 조치
 
 규칙
 
