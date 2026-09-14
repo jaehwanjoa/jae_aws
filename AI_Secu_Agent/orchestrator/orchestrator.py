@@ -25,7 +25,7 @@ s3_client = boto3.client(
     "s3"
 )
 
-MAIL_SENDER = "cp-report@cj.net"
+MAIL_SENDER = "jaehwan.myeong@cj.net"
 
 MAIL_RECEIVERS = [
     "bs.chae@cj.net",
