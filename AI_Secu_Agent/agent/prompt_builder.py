@@ -151,6 +151,15 @@ class PromptBuilder:
 - 값이 없을 경우에만 "확인되지 않음" 으로 작성한다.
 
 2. Malware 분석
+- description 이 존재하는 경우 Malware 분석 시 최우선 참고한다.
+- description 과 Context 를 구분하여 설명한다.
+- description 에 없는 행위를 생성하지 않는다.
+- description 보다 파일명, 파일 경로를 우선 해석하지 않는다.
+- File Path 만으로 실행 여부를 설명하지 않는다.
+- SHA256 만으로 실제 행위를 설명하지 않는다.
+- 탐지명(Issue Name)만으로 실제 행위를 설명하지 않는다.
+- Runtime 정보가 없는 경우 프로세스 행위를 생성하지 않는다.
+- Context 에 존재하지 않는 행위를 생성하지 않는다.
 
 3. 영향 자산
 - 자산명
@@ -369,6 +378,10 @@ WildFire 출력 규칙
 - closing_reason 이 존재하는 경우 함께 설명한다.
 - closing_reason 이 "Resolved - False Positive" 인 경우 False Positive 종료 이력이 확인된다고 설명한다.
 - closing_reason 값만으로 실제 탐지 결과 전체를 무효화하지 않는다.
+- description 이 존재하는 경우 행위 분석 시 최우선 참고한다.
+- description 과 Context 를 구분하여 설명한다.
+- description 에 없는 행위를 생성하지 않는다.
+- description 보다 Command Line 을 우선 해석하지 않는다.
 
 [WildFire 분석]
 
@@ -415,6 +428,12 @@ WildFire 출력 규칙
 - Parent / Child 관계는 Context 에 존재하는 경우만 설명한다.
 - 실제 관찰된 프로세스 정보만 설명한다.
 - 추정된 행위를 생성하지 않는다.
+- Context 에 존재하지 않는 프로세스 행위를 생성하지 않는다.
+- "~로 보인다" 표현을 사용하지 않는다.
+- "~로 판단된다" 표현을 사용하지 않는다.
+- "~일 가능성이 높다" 표현을 사용하지 않는다.
+- "~와 관련된 작업" 표현을 사용하지 않는다.
+- Command Line 문자열만으로 수행 목적을 설명하지 않는다.
 
 3. ATT&CK 분석
 
