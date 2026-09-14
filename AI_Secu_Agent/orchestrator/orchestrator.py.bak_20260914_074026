@@ -184,28 +184,24 @@ def build_wf_summary(
 ):
 
     wf_info = (
-        wildfire_report.get("wildfire") or {}
+        wildfire_report.get(
+            "wildfire",
+            {}
+        )
     )
 
     file_info = (
-        wf_info.get("file_info") or {}
+        wf_info.get(
+            "file_info",
+            {}
+        )
     )
 
-    task_info = wf_info.get("task_info")
-
-    if not task_info:
-        wf_status = "BEGIN"
-        wf_report_status = "아직 생성되지 않음"
-
-        print("WildFire 분석 상태: BEGIN")
-        print("WildFire Report: 아직 생성되지 않음")
-
-    else:
-        wf_status = "COMPLETED"
-        wf_report_status = "생성됨"
-
     reports = (
-        (task_info or {})
+        wf_info.get(
+            "task_info",
+            {}
+        )
         .get(
             "report",
             []
@@ -266,12 +262,6 @@ def build_wf_summary(
             file_info.get(
                 "malware"
             ),
-
-        "wildfire_status":
-            wf_status,
-
-        "wildfire_report_status":
-            wf_report_status,
 
         "summary":
             behavior_summary
@@ -835,26 +825,27 @@ class Orchestrator:
                         </html>
                         """                                           
 
-                        try:
-
-                            send_mail(
-                                subject=subject,
-                                body=body,
-                                sender=MAIL_SENDER,
-                                receivers=MAIL_RECEIVERS
-                            )
-
-                            print(
-                                f"MAIL_SENT_TO={len(MAIL_RECEIVERS)}"
-                            )
-
-                        except Exception as mail_error:
-
-                            print(
-                                f"MAIL_SEND_ERROR="
-                                f"{type(mail_error).__name__}: "
-                                f"{mail_error}"
-                            )
+                        for receiver in MAIL_RECEIVERS:
+                        
+                            try:
+                        
+                                send_mail(
+                                    subject=subject,
+                                    body=body,
+                                    sender=MAIL_SENDER,
+                                    receiver=receiver
+                                )
+                        
+                                print(
+                                    f"MAIL_SENT={receiver}"
+                                )
+                        
+                            except Exception as mail_error:
+                        
+                                print(
+                                    f"MAIL_SEND_ERROR={receiver}: "
+                                    f"{type(mail_error).__name__}: {mail_error}"
+                                )                        
                                      
                     except Exception as e:
                 

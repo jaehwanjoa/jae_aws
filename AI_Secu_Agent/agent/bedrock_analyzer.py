@@ -29,7 +29,7 @@ class BedrockAnalyzer:
                 "bedrock-2023-05-31",
 
                 "max_tokens":
-                1500,
+                4000,
 
                 "messages": [
                     {

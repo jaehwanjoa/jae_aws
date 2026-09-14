@@ -835,26 +835,27 @@ class Orchestrator:
                         </html>
                         """                                           
 
-                        try:
-
-                            send_mail(
-                                subject=subject,
-                                body=body,
-                                sender=MAIL_SENDER,
-                                receivers=MAIL_RECEIVERS
-                            )
-
-                            print(
-                                f"MAIL_SENT_TO={len(MAIL_RECEIVERS)}"
-                            )
-
-                        except Exception as mail_error:
-
-                            print(
-                                f"MAIL_SEND_ERROR="
-                                f"{type(mail_error).__name__}: "
-                                f"{mail_error}"
-                            )
+                        for receiver in MAIL_RECEIVERS:
+                        
+                            try:
+                        
+                                send_mail(
+                                    subject=subject,
+                                    body=body,
+                                    sender=MAIL_SENDER,
+                                    receiver=receiver
+                                )
+                        
+                                print(
+                                    f"MAIL_SENT={receiver}"
+                                )
+                        
+                            except Exception as mail_error:
+                        
+                                print(
+                                    f"MAIL_SEND_ERROR={receiver}: "
+                                    f"{type(mail_error).__name__}: {mail_error}"
+                                )                        
                                      
                     except Exception as e:
                 

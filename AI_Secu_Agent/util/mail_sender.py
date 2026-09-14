@@ -6,18 +6,19 @@ ses = boto3.client(
 )
 
 def send_mail(
-    subject: str,
-    body: str,
-    receiver: str,
-    sender: str
+    subject,
+    body,
+    receivers,
+    sender
 ):
+
+    if isinstance(receivers, str):
+        receivers = [receivers]
 
     response = ses.send_email(
         Source=sender,
         Destination={
-            "ToAddresses": [
-                receiver
-            ]
+            "ToAddresses": receivers
         },
         Message={
             "Subject": {
@@ -35,4 +36,8 @@ def send_mail(
 
     print(
         f"SES_MESSAGE_ID={response['MessageId']}"
+    )
+
+    print(
+        f"MAIL_SENT_COUNT={len(receivers)}"
     )
