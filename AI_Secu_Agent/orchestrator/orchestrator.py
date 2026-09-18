@@ -39,9 +39,41 @@ MAIL_RECEIVERS = [
     "jungyu.ahn@cj.net",
     "kimsh1021@cj.net",
     "kyounggon.shin@cj.net",
-    "yeongil.kim@cj.net"
+    "yeongil.kim@cj.net",
+    "hanbeom.lee@cj.net",
+    "jeewoo.hong1@cj.net",
+    "jeonghwan.lee3@cj.net",
+    "kc3m3151@cj.net",
+    "osscar0131@cj.net"
 ]
 
+def sanitize_large_fields(data):
+
+    for key, value in data.items():
+
+        if not isinstance(value, str):
+            continue
+
+        # 긴 Base64 제거
+        value = re.sub(
+            r'([A-Za-z0-9+/=]{500,})',
+            lambda m:
+                f"[BASE64_REMOVED len={len(m.group(1))}]",
+            value
+        )
+
+        # 전체 문자열 길이 제한
+        if len(value) > 3000:
+
+            value = (
+                value[:3000]
+                + "...[TRUNCATED]"
+            )
+
+        data[key] = value
+
+    return data
+    
 def save_filename_index(
     file_name,
     sha256,
@@ -499,11 +531,14 @@ class Orchestrator:
         print(result)
 
         try:
-
             incident_detail_json = json.loads(
                 result.structuredContent[
                     "result"
                 ]
+            )
+            
+            incident_detail_json = sanitize_large_fields(
+                incident_detail_json
             )
 
             print(
@@ -1322,7 +1357,11 @@ class Orchestrator:
                                         ]
                                     )
                                 )
-
+                                
+                                incident_detail_json = sanitize_large_fields(
+                                    incident_detail_json
+                                )
+                                
                                 data["reply"]["DATA"][0][
                                     "incident_detail"
                                 ] = incident_detail_json
