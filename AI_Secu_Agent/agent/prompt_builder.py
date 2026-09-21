@@ -400,11 +400,14 @@ Initiator와 CGO가 서로 다른 경우:
 - Initiator PID는 현재 탐지된 프로세스로 사용한다.
 - OS Parent ID는 Initiator PID의 부모 프로세스 식별 정보로 사용한다.
 - Initiator PID와 OS Parent ID가 존재하는 경우 Parent → Child 관계를 분석한다.
+- OS Parent ID와 Initiator PID의 수치 관계가 확인되는 경우 해당 관계를 설명하고 단순 값 나열로 끝내지 않는다.
 - Parent Process Name이 존재하지 않더라도 Parent PID 존재 사실을 분석에 반영한다.
 - Initiator PID, Initiator TID, OS Parent ID, Causality ID, Initiator/CGO 관계를 종합하여 하나의 프로세스 실행 컨텍스트로 분석한다.
 - Parent Process Name이 존재하지 않더라도 OS Parent ID와 Initiator PID의 관계를 설명한다.
 - OS Parent ID 존재 사실 자체를 프로세스 컨텍스트 분석 근거로 활용한다.
 - Parent PID와 Child PID가 확인되는 경우 프로세스 실행 흐름에 반영한다.
+- Initiator PID, Initiator TID, OS Parent ID가 모두 존재하는 경우 각 값을 독립적으로 설명하지 말고 상호 관계를 분석한다.
+- OS Parent ID와 Initiator PID의 관계가 확인되는 경우 해당 관계를 실행 주체 분석, 행위 분석, 오탐 가능성 평가 및 종합 분석 의견에 반영한다.
 - 도출된 프로세스 컨텍스트는
   실행 주체 분석,
   행위 분석,
@@ -459,6 +462,8 @@ Initiator와 CGO가 서로 다른 경우:
 - Cluster Name, Namespace, Container Name, Container ID, Image Name을 컨테이너 환경 분석에 활용한다.
 - Account ID 및 Asset Name을 자산 식별 정보로 활용한다.
 - Context에 존재하지 않는 Region, Account, User, Asset 정보를 생성하지 않는다.
+- Hostname 문자열만으로 특정 클라우드 서비스, 인스턴스 유형 또는 인프라를 추정하지 않는다.
+- Hostname 형태만으로 환경을 추정하지 않는다.
 
 [Container Runtime 해석]
 - runc
@@ -517,6 +522,8 @@ Initiator와 CGO가 서로 다른 경우:
 - Region, Account, User, Asset 정보를 Context 없이 생성하지 않는다.
 - "~로 보인다", "~로 판단된다", "~일 가능성이 높다", "추정된다", "의심된다" 등의 표현을 사용하지 않는다.
 - Context에 근거가 없는 추가 조사 권고를 생성하지 않는다.
+- 오탐 가능성 평가는 확인된 프로세스 관계, Command Line, Causality Context, WildFire 결과를 근거로 설명한다.
+- Container Runtime 프로세스라는 사실만으로 오탐으로 결론내리지 않는다.
 
 [출력 형식]
 1. 이벤트 정보
@@ -663,7 +670,10 @@ WildFire 결과가 없는 경우:
 - Issue Name 또는 Severity만으로 위험도를 판단하지 않는다.
 - 프로세스 관계 분석을 통해 도출된 분석 결과를 종합 분석 의견에 반영한다.
 - 실행 주체 및 Causality 분석 결과를 종합 분석 의견에 반영한다.
+- "~로 보인다", "~로 판단된다", "~으로 추정된다" 와 같은 표현을 사용하지 않는다.
+- Context에서 확인된 사실과 분석 의견을 구분한다.
 - 프로세스 관계, 실행 주체, Causality, Command Line, SHA256 및 WildFire 결과를 종합하여 작성한다.
+- 프로세스 관계 분석에서 확인된 Parent PID, Initiator PID, Initiator/CGO 관계를 반영한다.
 
 8. 권장 조치
 
