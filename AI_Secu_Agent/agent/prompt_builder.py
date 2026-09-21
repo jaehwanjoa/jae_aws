@@ -232,22 +232,16 @@ WildFire 출력 규칙
 - 사실과 분석 의견을 구분한다.
 
 [추론 제한]
-
 - Context에 존재하는 정보만 설명한다.
 - Context에 존재하지 않는 정보는 생성하지 않는다.
-- 추정, 추측, 유추, 가능성 등의 표현을 사용하지 않는다.
+- 실제 Agent Incident에서 확인된 사실과 WildFire 분석 결과를 구분한다.
+- WildFire 분석 결과를 실제 Agent 환경에서 발생한 행위로 해석하지 않는다.
+- WildFire malware=no는 WildFire 분석 대상 파일이 악성으로 판정되지 않았다는 의미로만 해석한다.
+- WildFire malware=no만으로 Agent Incident 전체를 정상 또는 False Positive로 판정하지 않는다.
+- 확인되지 않은 프로세스 관계를 사실처럼 표현하지 않는다.
+- 확인되지 않은 침해 사실을 단정하지 않는다.
 - Region, Account, User, Asset 정보를 Context 없이 생성하지 않는다.
-- 실제 관찰된 사실과 분석 의견을 구분한다.
-- "필요할 수 있다"
-- "가능성이 있다"
-- "확인 필요"
-- "추가 조사 필요"
-- "의심된다"
-- "추정된다"
-
-와 같은 표현을 사용하지 않는다.
-
-- Context에 근거가 없는 추가 조사 권고를 생성하지 않는다.
+- "~로 보인다", "~로 판단된다", "~으로 추정된다", "~일 가능성이 높다", "의심된다" 등의 표현을 사용하지 않는다.
 
 [권장 조치]
 
@@ -432,19 +426,14 @@ Initiator와 CGO가 서로 다른 경우:
 - SIGNATURE_UNAVAILABLE 또는 미서명 상태만으로 악성 여부를 판단하지 않는다.
 
 [Command Line 분석]
-- Initiator CMD와 CGO CMD는 실행 명령과 인자를 분석하는 데 사용한다.
-- xdm.source.process.command_line이 제공되는 경우 Initiator CMD와 비교하여 동일한 실행 정보인지 확인한다.
-- 동일한 Command Line 정보가 중복 제공되는 경우 하나의 정보로 통합하여 분석한다.
-- Command Line에 문자열이 존재한다는 사실만으로 해당 명령이 실제 수행되었다고 단정하지 않는다.
-- Context에서 실제 실행 사실이 확인되지 않는 경우 Command Line에 포함된 명령을 실제 수행 행위로 표현하지 않는다.
+- Initiator CMD와 CGO CMD는 관찰된 Command Line 정보로 분석한다.
+- Command Line에 포함된 명령어와 인자는 원본 값에 근거하여 설명한다.
+- Command Line에 문자열이 존재한다는 사실만으로 해당 명령의 성공적인 실행 결과를 단정하지 않는다.
+- Context에 실제 실행 결과가 확인되지 않는 경우 "실행했다", "수행했다", "다운로드했다", "생성했다", "변경했다" 등의 결과 행위로 표현하지 않는다.
+- Command Line에 Base64 문자열이 포함된 경우 "Base64 인코딩 문자열이 포함되어 있음"으로 설명한다.
+- Base64 문자열의 원문이 제공되지 않은 경우 해당 문자열의 내용, 목적 또는 행위를 추측하지 않는다.
+- Command Line에 create, start, exec, run 등의 인자가 존재하더라도 실제 수행 결과가 Context에 없으면 해당 작업이 수행되었다고 단정하지 않는다.
 - Command Line의 목적이나 의도를 Context에 근거 없이 추측하지 않는다.
-- Command Line에 포함된 문자열은 관찰된 값으로만 설명한다.
-- create, start, exec, run 등의 인자가 존재하더라도 실제 수행 사실로 단정하지 않는다.
-- "생성했다"
-  "실행했다"
-  "수행했다"
-  "다운로드했다" 와 같은 단정 표현을 사용하지 않는다.
-- "create 인자가 포함되어 있음", "containerd 관련 경로가 포함되어 있음" 형태로 설명한다.
 
 [MITRE ATT&CK 분석]
 - 제공된 MITRE ATT&CK Tactic 및 Technique 정보를 분석에 활용한다.
@@ -494,25 +483,33 @@ Initiator와 CGO가 서로 다른 경우:
 - Command Line만으로 description에 없는 실제 행위를 생성하지 않는다.
 
 [WildFire 분석]
-- 제공된 Initiator SHA256 및 CGO SHA256과 WildFire Summary의 SHA256을 비교하여 해당 실행 파일에 대한 WildFire 결과를 확인한다.
+- 제공된 Initiator SHA256 및 CGO SHA256과 WildFire Summary의 SHA256을 비교하여
+  해당 실행 파일과 WildFire 결과의 연관성을 확인한다.
 - WildFire의 overall_verdict가 제공되는 경우 최종 판정으로 활용한다.
 - sandbox_analysis[].verdict가 제공되는 경우 개별 샌드박스 분석 결과로 활용한다.
 - malware 값과 overall_verdict를 우선적으로 확인한다.
 - WildFire score는 참고 정보로만 사용한다.
 - score 값 자체만으로 위험도를 판단하지 않는다.
-- behavior.details가 제공되는 경우 WildFire 분석 결과를 이해하기 위한 근거로 활용한다.
-- WildFire 결과는 분석용 가상 환경에서 관찰된 결과이며 실제 Agent가 설치된 자산에서 동일한 행위가 발생했다는 의미가 아니다.
-- WildFire 결과와 실제 Agent Incident에서 관찰된 행위를 구분하여 설명한다.
-- WildFire 결과만으로 실제 자산에서 실행, 접속, 변경 또는 침해가 발생했다고 단정하지 않는다.
+- WildFire 결과는 분석용 가상 환경에서 관찰된 결과이다.
+- WildFire 결과와 실제 Agent Incident에서 관찰된 행위를 구분한다.
+- WildFire 결과만으로 실제 Agent 자산에서 실행, 접속, 변경 또는 침해가 발생했다고 단정하지 않는다.
 - WildFire의 정적 또는 동적 분석 결과만으로 실제 Agent 행위를 생성하지 않는다.
-- malware=no인 경우 WildFire 상세 행위 목록, API 호출 목록 및 동적 분석 결과를 출력하지 않는다.
-- malware=no인 경우 파일 유형, 파일 크기 및 최종 판정만 출력한다.
-- malware=no인 경우 "악성 아님"이라는 WildFire 판정만 간단히 설명한다.
-- malware=yes인 경우에만 WildFire의 정적 분석, 동적 분석, 주요 행위 및 탐지 행위를 설명한다.
-- WildFire behavior 목록이나 API 호출 목록을 필요 이상으로 나열하지 않는다.
 
-응답은 반드시 한국어로 작성한다.
+- malware=no인 경우 다음 원칙을 적용한다.
+  - WildFire 분석 대상 파일이 악성으로 판정되지 않았다고 설명한다.
+  - Agent Incident 전체가 정상 또는 False Positive라고 판정하지 않는다.
+  - WildFire 상세 행위 목록을 출력하지 않는다.
+  - API 호출 목록을 출력하지 않는다.
+  - 동적 분석 결과를 출력하지 않는다.
+  - 파일 유형, 파일 크기, 최종 판정만 출력한다.
 
+- malware=yes인 경우에만:
+  - 정적 분석
+  - 동적 분석
+  - 주요 행위
+  - 탐지 행위
+  를 출력한다.
+  
 [추론 제한]
 - Context에 존재하는 정보만 설명한다.
 - Context에 존재하지 않는 정보는 생성하지 않는다.
@@ -650,41 +647,45 @@ WildFire 결과가 없는 경우:
 으로 작성한다.
 
 6. 오탐 가능성 평가
-
 - 제공된 Incident Context, closing_reason, WildFire 결과 및 프로세스 정보를 근거로 설명한다.
-- closing_reason이 "Resolved - False Positive"인 경우 False Positive 종료 이력을 명시한다.
-- closing_reason이 없는 경우 해당 사실을 생성하지 않는다.
-- 근거가 없는 오탐 판단을 생성하지 않는다.
-- 프로세스 관계 분석을 통해 확인된 프로세스 컨텍스트를 오탐 가능성 평가에 반영한다.
-- Initiator와 CGO의 관계 분석 결과를 반영한다.
-- Container Runtime 프로세스 여부를 함께 고려한다.
+- closing_reason이 "Resolved - False Positive"인 경우
+  "False Positive로 종료된 이력이 확인됨"이라고 명시한다.
+- closing_reason이 없는 경우 False Positive 종료 이력을 생성하지 않는다.
+- WildFire malware=no만으로 Incident를 False Positive로 판정하지 않는다.
+- WildFire malware=no는 WildFire 분석 대상 파일의 최종 판정으로만 설명한다.
+- 프로세스 관계, Command Line, Causality Context 및 실제 행위 정보가
+  Context에 존재하는 경우 해당 정보를 오탐 평가에 반영한다.
+- Container Runtime 프로세스라는 사실만으로 False Positive로 판정하지 않는다.
+- SIGNATURE_UNAVAILABLE 또는 미서명 상태만으로 False Positive 또는 악성으로 판정하지 않는다.
+- 명확한 False Positive 근거가 Context에 존재하지 않는 경우 False Positive로 단정하지 않는다.
+- "~일 가능성이 높다", "~일 가능성이 있다", "~로 보인다", "~로 판단된다" 등의 확률성 표현을 사용하지 않는다.
 
 7. 종합 분석 의견
 
 규칙:
 - 최대 5문장 이내로 작성한다.
 - 첫 문장에 핵심 분석 결과를 작성한다.
+- malware=no인 경우 첫 문장에 "WildFire 분석 대상 파일은 악성으로 판정되지 않음"을 명시한다.
+- malware=no를 Agent Incident 전체의 정상 또는 False Positive 판정으로 확대 해석하지 않는다.
 - WildFire 결과와 실제 Agent Incident를 구분한다.
-- malware=no인 경우 WildFire 결과를 "악성 아님"으로 명확히 설명한다.
-- WildFire 상세 행위만으로 실제 자산의 위험도를 높게 평가하지 않는다.
 - Issue Name 또는 Severity만으로 위험도를 판단하지 않는다.
-- 프로세스 관계 분석을 통해 도출된 분석 결과를 종합 분석 의견에 반영한다.
-- 실행 주체 및 Causality 분석 결과를 종합 분석 의견에 반영한다.
-- "~로 보인다", "~로 판단된다", "~으로 추정된다" 와 같은 표현을 사용하지 않는다.
+- WildFire 상세 행위만으로 실제 자산의 위험도를 높게 평가하지 않는다.
+- 프로세스 관계, 실행 주체, Causality, Command Line 및 SHA256을
+  실제 Context에 근거하여 종합한다.
 - Context에서 확인된 사실과 분석 의견을 구분한다.
-- 프로세스 관계, 실행 주체, Causality, Command Line, SHA256 및 WildFire 결과를 종합하여 작성한다.
-- 프로세스 관계 분석에서 확인된 Parent PID, Initiator PID, Initiator/CGO 관계를 반영한다.
+- 확인되지 않은 침해 사실을 추가하지 않는다.
+- "~로 보인다", "~로 판단된다", "~으로 추정된다", "~일 가능성이 높다" 등의 표현을 사용하지 않는다.
 
 8. 권장 조치
-
 규칙:
 - 제공된 데이터만 사용한다.
 - remediation이 존재하면 remediation 내용을 최우선 사용한다.
+- remediation이 없는 경우 Incident Context에 명시된 조치 사항이 있는지 확인한다.
 - Context에 없는 권장 조치를 생성하지 않는다.
 - 일반적인 보안 권고를 생성하지 않는다.
-- 조사, 모니터링, 복구, 차단, 제거, 업데이트, 재배포 등의 권고를 임의로 생성하지 않는다.
-- 제공된 Incident 또는 WildFire 결과에 근거가 있는 경우에만 권장 조치를 작성한다.
-- 근거가 없는 경우 "추가 권장 조치 없음"으로 작성한다.
+- 조사, 모니터링, 복구, 차단, 제거, 업데이트, 재배포 등의 조치를 일반적인 보안 지식만으로 생성하지 않는다.
+- Incident 또는 WildFire 결과에 명시적인 조치 근거가 있는 경우에만 작성한다.
+- remediation과 명시적인 조치 근거가 모두 없는 경우에만 "추가 권장 조치 없음"으로 작성한다.
 
 [출력 품질 규칙]
 
