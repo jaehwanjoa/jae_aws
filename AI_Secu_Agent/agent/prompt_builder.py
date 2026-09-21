@@ -400,6 +400,10 @@ WildFire 출력 규칙
 - ATT&CK 정보만으로 실제 침해 성공 또는 공격 수행을 단정하지 않는다.
 - Context에 명시된 행위와 ATT&CK 정보가 일치하는 경우 그 관계를 설명한다.
 - Context에 없는 ATT&CK Technique을 임의로 추가하지 않는다.
+- 제공된 MITRE ATT&CK Tactic/Technique은 탐지 시스템이 부여한 분류 정보로 취급한다.
+- MITRE Technique이 존재한다는 사실만으로 해당 Technique의 실제 행위가 수행되었다고 판단하지 않는다.
+- 실제 행위가 Context에 명시적으로 확인되는 경우에만 해당 Technique과 관찰된 행위를 연결하여 설명한다.
+- Context에서 Technique의 실제 행위가 확인되지 않는 경우 "MITRE ATT&CK 분류가 존재하나 해당 행위 자체는 Context에서 확인되지 않음"으로 표현한다.
 
 [Host / User / Container 분석]
 - Hostname, Host IP, Host OS, User name을 제공된 Context에 따라 분석한다.
