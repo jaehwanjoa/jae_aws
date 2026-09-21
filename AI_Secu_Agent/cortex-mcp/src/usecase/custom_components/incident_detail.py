@@ -115,6 +115,12 @@ async def get_incident_detail(
                 "image_name": r"\| Image Name \|\s*(.*?)\s*\|",
                 "sha256": r"\| Initiator SHA256 \|\s*(.*?)\s*\|",
                 "user": r"\| User name \|\s*(.*?)\s*\|",
+                "initiator_pid":
+                    r"\| Initiator PID \|\s*(.*?)\s*\|",
+                "initiator_tid":
+                    r"\| Initiator TID \|\s*(.*?)\s*\|",
+                "os_parent_id":
+                    r"\| OS Parent ID \|\s*(.*?)\s*\|",
                 "initiator": r"\| Initiated By \|\s*(.*?)\s*\|",
                 "initiator_cmd": r"\| Initiator CMD \|\s*(.*?)\s*\|",
                 "cluster_name": r"\| Cluster Name \|\s*(.*?)\s*\|",
