@@ -506,24 +506,18 @@ WildFire 출력 규칙
 
 3. 실행 주체 및 Causality 분석
 - Initiated By
-- Initiator CMD
-- Initiator Path
-- Initiator SHA256
-- Initiator Signature
-- CGO Name
-- CGO CMD
-- CGO Path
-- CGO SHA256
-- CGO Signature
+- Causality ID
 - 실행 주체 및 Causality 분석 결과
 
 규칙:
-- Context에 존재하면 원문 값을 그대로 출력한다.
-- Initiator CMD와 CGO CMD가 동일한 경우 중복하여 설명하지 않는다.
-- Initiator SHA256과 CGO SHA256이 동일한 경우 중복하여 설명하지 않는다.
-- Initiator와 CGO가 동일한 프로세스인 경우 중복 정보로 취급한다.
-- 서로 다른 프로세스인 경우 Causality ID 및 프로세스 관계 정보와 함께 분석한다.
-- SHA256, Path, CMD 중 하나의 정보만으로 악성 여부를 판단하지 않는다.
+- 이 섹션은 원본 지표를 나열하는 목적이 아니라 프로세스 관계와 Causality Context를 설명하는 목적이다.
+- Initiator CMD, Path, SHA256, Signature 등 원본 식별값은 반복 나열하지 않는다.
+- 동일한 내용은 6. IOC 및 주요 분석 근거에서만 출력한다.
+- Initiator와 CGO가 동일한 경우 중복 프로세스로 설명한다.
+- Initiator와 CGO가 서로 다른 경우 관계를 설명한다.
+- PID, Parent ID, Causality ID를 활용하여 확인 가능한 관계만 설명한다.
+- Context에 없는 Parent/Child 관계는 생성하지 않는다.
+- 분석 결과는 최대 5문장 이내로 작성한다.
 
 4. 행위 분석
 다음 항목을 분석한다.
