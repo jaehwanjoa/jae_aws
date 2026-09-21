@@ -550,30 +550,38 @@ WildFire 출력 규칙
 - Context에 없는 Technique을 생성하지 않는다.
 
 6. IOC 및 주요 분석 근거
+아래 항목을 반드시 출력한다.
 
-반드시 아래 항목을 출력한다.
+* Initiator
+* Initiator CMD
+* Initiator SHA256
+* Initiator MD5
+* Initiator Signature
+* OS Parent Signature
+* CGO SHA256
+* Host IP
+* Hostname
+* File Path
+* Host OS
 
-- Initiator
-- Initiator CMD
-- Initiator SHA256
-- Initiator MD5
-- Initiator Signature
-- OS Parent Signature
-- CGO SHA256
-- Host IP
-- Hostname
-- File Path
-- Host OS
+출력 규칙:
 
-규칙:
-- 위 항목은 절대 생략하지 않는다.
-- Context에 존재하면 원문 값을 그대로 출력한다.
-- Command Line은 중복 출력하지 않는다.
-- Initiator CMD와 CGO CMD가 동일한 경우 CGO CMD는 별도로 출력하지 않는다.
-- Initiator SHA256과 CGO SHA256이 동일한 경우 1회만 출력한다.
-- SHA256은 원문 그대로 출력한다.
-- Signature는 원문 그대로 출력한다.
-- 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
+* 위 항목은 Context에 값이 존재하는 경우 원문 값을 그대로 출력한다.
+* Context에 해당 값이 존재하지 않는 경우에만 "확인되지 않음"으로 출력한다.
+* SHA256, MD5, Signature, IP, Hostname, File Path 등 식별값은 임의로 변환하거나 요약하지 않는다.
+* 동일한 값이 여러 필드에 존재하는 경우 중복 출력하지 않는다.
+* Initiator CMD와 CGO CMD가 동일한 경우 CGO CMD는 별도로 출력하지 않는다.
+* Initiator SHA256과 CGO SHA256이 동일한 경우 SHA256은 1회만 출력한다.
+* Command Line이 Initiator CMD와 동일한 경우 별도로 중복 출력하지 않는다.
+* 값의 존재 여부와 악성 여부를 혼동하지 않는다. 단순히 값이 존재하거나 서명이 없다는 이유만으로 악성으로 판단하지 않는다.
+* 위 항목은 "원본 분석 지표"이며, 해당 값 자체를 근거로 추가적인 사실을 생성하거나 추정하지 않는다.
+
+주요 분석 근거:
+
+* 위 지표 중 실제 분석 결과에 직접 영향을 준 항목을 별도로 정리한다.
+* 주요 분석 근거에는 프로세스 관계, Causality ID, 실행 명령, 실행 파일 경로, SHA256, 사용자, 호스트, MITRE ATT&CK, WildFire 결과 등 실제 Context에서 확인된 정보만 사용한다.
+* 분석 근거와 추정 또는 해석을 구분하여 작성한다.
+* 확인되지 않은 프로세스 관계나 행위는 사실처럼 표현하지 않는다.
 
 7. WildFire 분석 결과
 
