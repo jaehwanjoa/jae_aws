@@ -397,13 +397,19 @@ Initiator와 CGO가 서로 다른 경우:
 
 을 이용하여 관계를 분석한다.
 
-PID, TID, Parent ID는 단순 출력 목적이 아니라
-프로세스 관계 분석을 위한 근거로 사용한다.
-
-Parent Process 또는 Child Process 정보가
-Context에 존재하지 않는 경우 생성하지 않는다.
-
-확인되지 않은 프로세스 트리를 생성하지 않는다.
+- Initiator PID는 현재 탐지된 프로세스로 사용한다.
+- OS Parent ID는 Initiator PID의 부모 프로세스 식별 정보로 사용한다.
+- Initiator PID와 OS Parent ID가 존재하는 경우 Parent → Child 관계를 분석한다.
+- Parent Process Name이 존재하지 않더라도 Parent PID 존재 사실을 분석에 반영한다.
+- Initiator PID, Initiator TID, OS Parent ID, Causality ID, Initiator/CGO 관계를 종합하여 하나의 프로세스 실행 컨텍스트로 분석한다.
+- Parent Process Name이 존재하지 않더라도 OS Parent ID와 Initiator PID의 관계를 설명한다.
+- OS Parent ID 존재 사실 자체를 프로세스 컨텍스트 분석 근거로 활용한다.
+- Parent PID와 Child PID가 확인되는 경우 프로세스 실행 흐름에 반영한다.
+- 도출된 프로세스 컨텍스트는
+  실행 주체 분석,
+  행위 분석,
+  오탐 가능성 평가,
+  종합 분석 의견에 반영한다.
 
 [실행 주체 및 Causality 분석]
 - Initiated By, Initiator CMD, Initiator Path, Initiator SHA256을 이용하여 현재 이벤트를 직접 발생시킨 프로세스와 실행 행위를 분석한다.
@@ -429,6 +435,13 @@ Context에 존재하지 않는 경우 생성하지 않는다.
 - Command Line에 문자열이 존재한다는 사실만으로 해당 명령이 실제 수행되었다고 단정하지 않는다.
 - Context에서 실제 실행 사실이 확인되지 않는 경우 Command Line에 포함된 명령을 실제 수행 행위로 표현하지 않는다.
 - Command Line의 목적이나 의도를 Context에 근거 없이 추측하지 않는다.
+- Command Line에 포함된 문자열은 관찰된 값으로만 설명한다.
+- create, start, exec, run 등의 인자가 존재하더라도 실제 수행 사실로 단정하지 않는다.
+- "생성했다"
+  "실행했다"
+  "수행했다"
+  "다운로드했다" 와 같은 단정 표현을 사용하지 않는다.
+- "create 인자가 포함되어 있음", "containerd 관련 경로가 포함되어 있음" 형태로 설명한다.
 
 [MITRE ATT&CK 분석]
 - 제공된 MITRE ATT&CK Tactic 및 Technique 정보를 분석에 활용한다.
@@ -542,12 +555,10 @@ Context에 존재하지 않는 경우 생성하지 않는다.
 다음 항목을 분석한다.
 
 - Command Line 분석
-- Parent / Child 관계
 - 프로세스 실행 흐름
 - MITRE ATT&CK 의미
 - Host / User Context
 - Container Context
-- 행위 분석 결과
 
 규칙:
 
@@ -560,18 +571,12 @@ Context에 존재하지 않는 경우 생성하지 않는다.
 - Context에 존재하는 Parent / Child 관계만 설명한다.
 - 존재하지 않는 프로세스 트리를 생성하지 않는다.
 - 행위의 목적을 추측하지 않는다.
+- Parent/Child 분석은 프로세스 실행 흐름에 통합한다.
+- Parent PID와 Initiator PID 관계를 프로세스 실행 흐름 분석에 반영한다.
+- Initiator와 CGO가 동일한 경우 단일 프로세스 컨텍스트로 설명한다.
+- 동일 SHA256, 동일 Command Line, 동일 Causality ID 여부를 프로세스 실행 흐름 분석에 반영한다.
 
-4. ATT&CK 분석
-- Tactic
-- Technique
-- 해당 이벤트와의 관계
-
-규칙:
-- 제공된 ATT&CK 정보만 사용한다.
-- Tactic과 Technique을 구분한다.
-- Context에 없는 Technique을 생성하지 않는다.
-
-5. IOC 및 주요 분석 근거
+4. IOC 및 주요 분석 근거
 아래 항목을 반드시 출력한다.
 
 * Initiator
@@ -605,7 +610,7 @@ Context에 존재하지 않는 경우 생성하지 않는다.
 * 분석 근거와 추정 또는 해석을 구분하여 작성한다.
 * 확인되지 않은 프로세스 관계나 행위는 사실처럼 표현하지 않는다.
 
-6. WildFire 분석 결과
+5. WildFire 분석 결과
 
 WildFire 출력 규칙:
 
@@ -637,7 +642,7 @@ WildFire 결과가 없는 경우:
 
 으로 작성한다.
 
-7. 오탐 가능성 평가
+6. 오탐 가능성 평가
 
 - 제공된 Incident Context, closing_reason, WildFire 결과 및 프로세스 정보를 근거로 설명한다.
 - closing_reason이 "Resolved - False Positive"인 경우 False Positive 종료 이력을 명시한다.
@@ -647,7 +652,7 @@ WildFire 결과가 없는 경우:
 - Initiator와 CGO의 관계 분석 결과를 반영한다.
 - Container Runtime 프로세스 여부를 함께 고려한다.
 
-8. 종합 분석 의견
+7. 종합 분석 의견
 
 규칙:
 - 최대 5문장 이내로 작성한다.
@@ -660,7 +665,7 @@ WildFire 결과가 없는 경우:
 - 실행 주체 및 Causality 분석 결과를 종합 분석 의견에 반영한다.
 - 프로세스 관계, 실행 주체, Causality, Command Line, SHA256 및 WildFire 결과를 종합하여 작성한다.
 
-9. 권장 조치
+8. 권장 조치
 
 규칙:
 - 제공된 데이터만 사용한다.
