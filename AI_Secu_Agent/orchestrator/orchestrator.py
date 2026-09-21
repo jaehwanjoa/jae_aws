@@ -7,6 +7,7 @@ import uuid
 import traceback
 import xmltodict
 
+from html import escape
 from mcp_tools.cortex_executor import CortexExecutor
 from agent.router import select_route
 from agent.cortex_query import build_issue_query
@@ -47,6 +48,70 @@ MAIL_RECEIVERS = [
     "osscar0131@cj.net"
 ]
 
+def format_analysis_html(analysis):
+
+    if not analysis:
+        return "<p>분석 결과가 없습니다.</p>"
+
+    html = []
+
+    for line in analysis.splitlines():
+
+        line = line.strip()
+
+        if not line:
+            continue
+
+        safe_line = escape(line)
+
+        if re.match(
+            r"^\d+\.\s+",
+            line
+        ):
+            html.append(
+                f"""
+                <h3 style="
+                    margin:20px 0 8px 0;
+                    padding:10px 12px;
+                    background:#f1f3f5;
+                    border-left:4px solid #1976d2;
+                    font-size:15px;
+                ">
+                    {safe_line}
+                </h3>
+                """
+            )
+
+        elif line.startswith("- "):
+
+            content = escape(line[2:])
+
+            html.append(
+                f"""
+                <div style="
+                    padding:5px 10px;
+                    line-height:1.6;
+                ">
+                    • {content}
+                </div>
+                """
+            )
+
+        else:
+
+            html.append(
+                f"""
+                <div style="
+                    padding:4px 10px;
+                    line-height:1.6;
+                ">
+                    {safe_line}
+                </div>
+                """
+            )
+
+    return "\n".join(html)
+    
 def sanitize_large_fields(data):
 
     for key, value in data.items():
@@ -781,7 +846,9 @@ class Orchestrator:
                             analysis
                         )
                         
-                        analysis_html = analysis.replace("\n", "<br>")
+                        analysis_html = format_analysis_html(
+                            analysis
+                        )                        
                         
                         subject = (
                             f"[Cortex {source_type}] "
@@ -797,20 +864,24 @@ class Orchestrator:
                             "Medium": "#fbc02d",
                             "Low": "#388e3c"
                         }.get(severity, "#1976d2")
-                        
+
                         body = f"""
                         <html>
                         <head>
                         <meta charset="UTF-8">
                         </head>
                         
-                        <body style="font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;">
+                        <body style="
+                            font-family:Arial,sans-serif;
+                            background:#f5f5f5;
+                            padding:20px;
+                        ">
                         
                         <div style="
                             background:white;
                             border-radius:10px;
                             padding:20px;
-                            border:1px solid #dddddd;
+                            border:1px solid #ddd;
                         ">
                         
                         <h2 style="margin-top:0;">
@@ -829,19 +900,47 @@ class Orchestrator:
                         
                         <br>
                         
-                        <table style="border-collapse:collapse;width:100%;">
+                        <table style="
+                            border-collapse:collapse;
+                            width:100%;
+                        ">
+                        
                         <tr>
-                            <td style="border:1px solid #ddd;padding:8px;"><b>Incident ID</b></td>
-                            <td style="border:1px solid #ddd;padding:8px;">{incident_detail_json.get('incident_id')}</td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        <b>Incident ID</b>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        {incident_detail_json.get('incident_id')}
+                        </td>
                         </tr>
+                        
                         <tr>
-                            <td style="border:1px solid #ddd;padding:8px;"><b>Source Type</b></td>
-                            <td style="border:1px solid #ddd;padding:8px;">{source_type}</td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        <b>Source Type</b>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        {source_type}
+                        </td>
                         </tr>
+                        
                         <tr>
-                            <td style="border:1px solid #ddd;padding:8px;"><b>Issue Name</b></td>
-                            <td style="border:1px solid #ddd;padding:8px;">{incident_detail_json.get('issue_name')}</td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        <b>Issue Name</b>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        {incident_detail_json.get('issue_name')}
+                        </td>
                         </tr>
+                        
+                        <tr>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        <b>Hostname</b>
+                        </td>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        {incident_detail_json.get('hostname')}
+                        </td>
+                        </tr>
+                        
                         </table>
                         
                         <br>
@@ -853,17 +952,13 @@ class Orchestrator:
                         ">
                         
                         <h3 style="margin-top:0;">
-                        분석 결과
+                        AI 분석 결과
                         </h3>
                         
                         {analysis_html}
                         
                         </div>
                         
-                        <br>
-                        
-                        <hr>
-                                           
                         </div>
                         
                         </body>
