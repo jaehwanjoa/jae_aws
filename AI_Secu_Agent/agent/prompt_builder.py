@@ -360,14 +360,50 @@ WildFire 출력 규칙
 8. 종합 분석
 
 [프로세스 관계 분석]
-- Initiator PID는 현재 이벤트를 발생시킨 프로세스를 식별하는 데 사용한다.
-- OS Parent ID는 Initiator PID와 부모 프로세스의 관계를 확인하고 프로세스 계층을 분석하는 데 사용한다.
-- Initiator TID는 해당 이벤트가 발생한 스레드를 식별하는 보조 정보로 사용한다.
-- PID, TID, Parent ID의 값만으로 프로세스 관계를 단정하지 않는다.
-- Process Name, Process Path, Command Line, Causality ID 및 Parent / Child 정보가 함께 제공되는 경우 이를 종합하여 프로세스 관계를 분석한다.
-- Parent / Child 관계가 Context에 존재하지 않는 경우 임의로 프로세스 트리를 생성하지 않는다.
-- 확인할 수 없는 프로세스 관계는 사실로 표현하지 않는다.
-- 확인된 정보와 분석 결과를 구분하여 설명한다.
+
+이 분석은 독립적인 결과 출력을 위한 항목이 아니다.
+
+Initiator, CGO, PID, Parent ID, Command Line,
+SHA256, Causality ID를 이용하여 프로세스 관계를
+분석하기 위한 내부 추론 단계이다.
+
+프로세스 관계 분석 결과는 아래 항목에 반드시 반영한다.
+
+- 실행 주체 및 Causality 분석
+- 행위 분석
+- ATT&CK 분석
+- 오탐 가능성 평가
+- 종합 분석 의견
+
+Initiator와 CGO의 관계를 우선 분석한다.
+
+Initiator와 CGO가 동일한 경우:
+
+- 동일 프로세스 컨텍스트 여부
+- 동일 SHA256 여부
+- 동일 Command Line 여부
+- 동일 Causality Context 여부
+
+를 확인한다.
+
+Initiator와 CGO가 서로 다른 경우:
+
+- Parent / Child 관계
+- Causality ID
+- PID
+- Parent ID
+- Path
+- Command Line
+
+을 이용하여 관계를 분석한다.
+
+PID, TID, Parent ID는 단순 출력 목적이 아니라
+프로세스 관계 분석을 위한 근거로 사용한다.
+
+Parent Process 또는 Child Process 정보가
+Context에 존재하지 않는 경우 생성하지 않는다.
+
+확인되지 않은 프로세스 트리를 생성하지 않는다.
 
 [실행 주체 및 Causality 분석]
 - Initiated By, Initiator CMD, Initiator Path, Initiator SHA256을 이용하여 현재 이벤트를 직접 발생시킨 프로세스와 실행 행위를 분석한다.
@@ -487,24 +523,7 @@ WildFire 출력 규칙
 - Context에 존재하면 원문 값을 그대로 출력한다.
 - 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
 
-2. 프로세스 관계 분석
-- Initiator PID
-- Initiator TID
-- OS Parent ID
-- Initiator
-- Parent Process
-- Target Process
-- Causality ID
-- 프로세스 관계 분석 결과
-
-규칙:
-- Context에 존재하는 값만 출력한다.
-- 값이 없을 경우에만 "확인되지 않음"으로 작성한다.
-- Parent Process 또는 Target Process 정보가 Context에 없는 경우 임의로 생성하지 않는다.
-- PID, TID, Parent ID의 값만으로 부모/자식 관계를 확정하지 않는다.
-- 확인 가능한 관계만 설명한다.
-
-3. 실행 주체 및 Causality 분석
+2. 실행 주체 및 Causality 분석
 - Initiated By
 - Causality ID
 - 실행 주체 및 Causality 분석 결과
@@ -519,7 +538,7 @@ WildFire 출력 규칙
 - Context에 없는 Parent/Child 관계는 생성하지 않는다.
 - 분석 결과는 최대 5문장 이내로 작성한다.
 
-4. 행위 분석
+3. 행위 분석
 다음 항목을 분석한다.
 
 - Command Line 분석
@@ -531,13 +550,18 @@ WildFire 출력 규칙
 - 행위 분석 결과
 
 규칙:
+
+- 프로세스 관계 분석을 통해 도출된 분석 결과를 반영하여 행위 분석을 수행한다.
+- 실행 주체 및 Causality 분석 결과를 함께 참고한다.
+- Initiator와 CGO의 관계 분석 결과를 Command Line 및 Causality 분석에 반영한다.
+- 프로세스 관계 분석을 통해 확인된 관계와 모순되는 행위를 생성하지 않는다.
 - 실제 Context에 존재하는 정보만 설명한다.
 - Command Line 문자열만으로 실제 수행된 행위를 단정하지 않는다.
 - Context에 존재하는 Parent / Child 관계만 설명한다.
 - 존재하지 않는 프로세스 트리를 생성하지 않는다.
 - 행위의 목적을 추측하지 않는다.
 
-5. ATT&CK 분석
+4. ATT&CK 분석
 - Tactic
 - Technique
 - 해당 이벤트와의 관계
@@ -547,7 +571,7 @@ WildFire 출력 규칙
 - Tactic과 Technique을 구분한다.
 - Context에 없는 Technique을 생성하지 않는다.
 
-6. IOC 및 주요 분석 근거
+5. IOC 및 주요 분석 근거
 아래 항목을 반드시 출력한다.
 
 * Initiator
@@ -581,7 +605,7 @@ WildFire 출력 규칙
 * 분석 근거와 추정 또는 해석을 구분하여 작성한다.
 * 확인되지 않은 프로세스 관계나 행위는 사실처럼 표현하지 않는다.
 
-7. WildFire 분석 결과
+6. WildFire 분석 결과
 
 WildFire 출력 규칙:
 
@@ -613,14 +637,17 @@ WildFire 결과가 없는 경우:
 
 으로 작성한다.
 
-8. 오탐 가능성 평가
+7. 오탐 가능성 평가
 
 - 제공된 Incident Context, closing_reason, WildFire 결과 및 프로세스 정보를 근거로 설명한다.
 - closing_reason이 "Resolved - False Positive"인 경우 False Positive 종료 이력을 명시한다.
 - closing_reason이 없는 경우 해당 사실을 생성하지 않는다.
 - 근거가 없는 오탐 판단을 생성하지 않는다.
+- 프로세스 관계 분석을 통해 확인된 프로세스 컨텍스트를 오탐 가능성 평가에 반영한다.
+- Initiator와 CGO의 관계 분석 결과를 반영한다.
+- Container Runtime 프로세스 여부를 함께 고려한다.
 
-9. 종합 분석 의견
+8. 종합 분석 의견
 
 규칙:
 - 최대 5문장 이내로 작성한다.
@@ -629,9 +656,11 @@ WildFire 결과가 없는 경우:
 - malware=no인 경우 WildFire 결과를 "악성 아님"으로 명확히 설명한다.
 - WildFire 상세 행위만으로 실제 자산의 위험도를 높게 평가하지 않는다.
 - Issue Name 또는 Severity만으로 위험도를 판단하지 않는다.
+- 프로세스 관계 분석을 통해 도출된 분석 결과를 종합 분석 의견에 반영한다.
+- 실행 주체 및 Causality 분석 결과를 종합 분석 의견에 반영한다.
 - 프로세스 관계, 실행 주체, Causality, Command Line, SHA256 및 WildFire 결과를 종합하여 작성한다.
 
-10. 권장 조치
+9. 권장 조치
 
 규칙:
 - 제공된 데이터만 사용한다.
