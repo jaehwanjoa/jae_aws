@@ -442,7 +442,7 @@ FROM base
 
 LIMIT 100
 """
-        
+
     @classmethod
     def build_daily_new_uri(
         cls,
@@ -452,8 +452,15 @@ LIMIT 100
         return f"""
 {cls.base_query(table_name)}
 
-SELECT DISTINCT
-    httprequest.uri
+SELECT
+
+    httprequest.uri,
+
+    count(*) AS hit_count,
+
+    count(
+        DISTINCT httprequest.clientip
+    ) AS unique_ip
 
 FROM base
 
@@ -461,7 +468,11 @@ FROM base
 
 AND httprequest.uri IS NOT NULL
 
-ORDER BY 1
+GROUP BY 1
+
+ORDER BY hit_count DESC
+
+LIMIT 20
 """
 
     @classmethod
@@ -473,8 +484,15 @@ ORDER BY 1
         return f"""
 {cls.base_query(table_name)}
 
-SELECT DISTINCT
-    terminatingruleid
+SELECT
+
+    terminatingruleid,
+
+    count(*) AS hit_count,
+
+    count(
+        DISTINCT httprequest.clientip
+    ) AS unique_ip
 
 FROM base
 
@@ -482,5 +500,9 @@ FROM base
 
 AND terminatingruleid IS NOT NULL
 
-ORDER BY 1
+GROUP BY 1
+
+ORDER BY hit_count DESC
+
+LIMIT 20 
 """
