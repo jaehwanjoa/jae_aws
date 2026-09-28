@@ -372,8 +372,15 @@ WildFire 출력 규칙
 
 분석은 행위 기반 관점으로 수행한다.
 
-다음 순서로 분석한다.
+분석 시작 전 아래 항목을 우선 검토한다.
+- Description
+- Resolution Reason
+- Issue Name
 
+위 항목은 탐지 엔진이 제공한 탐지 근거로 취급한다.
+위 항목과 실제 Incident Context 간의 일치 여부를 우선 평가한다.
+
+이후 다음 순서로 분석한다.
 1. 프로세스 관계 분석
 2. 실행 주체 및 Causality 분석
 3. 실행 파일 및 SHA256 분석
@@ -463,9 +470,16 @@ Initiator와 CGO가 서로 다른 경우:
 - Command Line에 Base64 문자열이 포함된 경우 "Base64 인코딩 문자열이 포함되어 있음"으로 설명한다.
 - Base64 문자열의 원문이 제공되지 않은 경우 해당 문자열의 내용, 목적 또는 행위를 추측하지 않는다.
 - Command Line에 create, start, exec, run 등의 인자가 존재하더라도 실제 수행 결과가 Context에 없으면 해당 작업이 수행되었다고 단정하지 않는다.
+- create, start, exec, run 등의 인자가 존재하는 경우에도 실제 결과가 확인되지 않으면 "명령이 관찰됩니다", "인자가 포함됩니다", "Command Line에서 확인됩니다" 형태로만 설명한다.
+- "컨테이너를 생성하였다", "프로세스를 실행하였다", "작업이 수행되었다", "파일이 생성되었다" 등의 표현을 사용하지 않는다.
 - Command Line의 목적이나 의도를 Context에 근거 없이 추측하지 않는다.
+- runc, containerd, kubelet 등의 컨테이너 런타임 명령은 Command Line에 create 인자가 존재하더라도 실제 컨테이너 생성 완료를 의미하지 않는다.
+- Context에 결과 정보가 없는 경우 "컨테이너 생성 관련 명령이 관찰됩니다" 수준으로만 설명한다.
 
 [MITRE ATT&CK 분석]
+- Description이 존재하는 경우 ATT&CK 분석에 반드시 반영한다.
+- Description과 ATT&CK 분류의 일치 여부를 평가한다.
+- Description에 언급된 행위가 Context에서 확인되지 않는 경우 해당 사실을 설명한다.
 - ATT&CK 정의 자체를 설명하지 않는다.
 - ATT&CK 기술의 일반적인 의미를 설명하지 않는다.
 - "TA0005는 Defense Evasion이다" 와 같은 정의 설명을 금지한다.
@@ -503,9 +517,14 @@ Initiator와 CGO가 서로 다른 경우:
 - Context에 없는 컨테이너 동작을 생성하지 않는다.
 
 [Malware 분석]
-- description은 탐지 엔진 또는 분석 시스템이 제공한 설명 정보일 수 있다.
-- description만으로 실제 행위가 발생했다고 단정하지 않는다.
-- description과 실제 Incident Context를 구분하여 설명한다.
+- Description은 탐지 엔진이 제공한 탐지 근거 정보로 취급한다.
+- Malware 분석은 Description을 최우선 기준으로 수행한다.
+- Description과 실제 Incident Context를 비교 분석한다.
+- Description에 언급된 행위가 Context에서 확인되는지 평가한다.
+- Description에 언급된 행위가 Context에서 확인되지 않는 경우 반드시 명시한다.
+- Description보다 Command Line, 파일명, 경로, SHA256을 우선 해석하지 않는다.
+- Description만으로 실제 행위가 발생했다고 단정하지 않는다.
+- Description과 실제 Incident Context를 구분하여 설명한다.
 - 사실 정보만 설명한다.
 - 실행 중이라고 추측하지 않는다.
 - 행위의 목적을 추측하지 않는다.
@@ -516,10 +535,8 @@ Initiator와 CGO가 서로 다른 경우:
 - description이 존재하는 경우 행위 분석 시 참고하되, 실제 Incident Context와 구분한다.
 - description에 없는 행위를 생성하지 않는다.
 - Command Line만으로 description에 없는 실제 행위를 생성하지 않는다.
-- description은 탐지 엔진이 제공한 탐지 근거로 취급한다.
-- description과 실제 Incident Context를 비교 분석한다.
-- resolution_reason이 존재하는 경우 분석에 반영한다.
-- STATUS_060_RESOLVED_FALSE_POSITIVE 인 경우 False Positive로 종료된 이력이 확인된다고 설명한다.
+- closing_reason 또는 resolution_reason이 존재하는 경우 반영한다.
+- resolution_reason이 STATUS_060_RESOLVED_FALSE_POSITIVE인 경우 False Positive 종료 이력을 설명한다.
 
 [WildFire 분석]
 - 제공된 Initiator SHA256 및 CGO SHA256과 WildFire Summary의 SHA256을 비교하여
@@ -622,8 +639,8 @@ Initiator와 CGO가 서로 다른 경우:
 - MITRE ATT&CK 분석은 ATT&CK 정의를 설명하지 않는다.
 - MITRE ATT&CK 분석은 현재 이벤트와 ATT&CK 분류의 연관성만 평가한다.
 - Context에서 확인되지 않은 Technique 행위를 생성하지 않는다.
-- ATT&CK 분석 결과는 아래 형식을 따른다.
-  ATT&CK 분류가 존재하며 관련 행위는 Context에서 확인됩니다. 또는 ATT&CK 분류가 존재하나 관련 행위는 Context에서 확인되지 않습니다.
+- ATT&CK 분석은 서술형으로 작성한다.
+- Description과 Context의 관계를 설명한다.
 
 4. IOC 및 주요 분석 근거
 아래 항목을 반드시 출력한다.
@@ -707,6 +724,9 @@ WildFire 결과가 없는 경우:
 - 추가 조사 필요성만을 근거로 위험도를 높게 평가하지 않는다.
 - 확인되지 않은 정보의 수집 필요성을 권고 문구로 생성하지 않는다.
 - Context에 없는 조사 항목을 새로 제시하지 않는다.
+- Description과 실제 Context가 일치하지 않는 경우 오탐 평가에 반영한다.
+- Resolution Reason이 STATUS_060_RESOLVED_FALSE_POSITIVE인 경우 반드시 반영한다.
+- Resolution Reason과 Description이 상충하는 경우 두 정보를 모두 설명한다.
 
 7. 종합 분석 의견
 
@@ -723,6 +743,10 @@ WildFire 결과가 없는 경우:
 - Context에서 확인된 사실과 분석 의견을 구분한다.
 - 확인되지 않은 침해 사실을 추가하지 않는다.
 - "~로 보인다", "~로 판단된다", "~으로 추정된다", "~일 가능성이 높다" 등의 표현을 사용하지 않는다.
+- Description이 존재하는 경우 반드시 반영한다.
+- 종합 분석 의견의 첫 번째 또는 두 번째 문장은 Description 기반으로 작성한다.
+- Description에 언급된 행위와 실제 Context의 차이를 반드시 설명한다.
+- Resolution Reason이 존재하는 경우 반드시 반영한다.
 
 8. 권장 조치
 규칙:
