@@ -53,6 +53,18 @@ class AthenaQueryGenerator:
                 table_name
             )
 
+        elif query_type == "daily_new_uri":
+            return cls.build_daily_new_uri(
+                filters,
+                table_name
+            )
+        
+        elif query_type == "daily_new_rule":
+            return cls.build_daily_new_rule(
+                filters,
+                table_name
+            )
+        
         return cls.build_generic_analysis(
             filters,
             table_name
@@ -429,4 +441,46 @@ FROM base
 {cls.build_where_clause(filters)}
 
 LIMIT 100
+"""
+        
+    @classmethod
+    def build_daily_new_uri(
+        cls,
+        filters,
+        table_name
+    ):
+        return f"""
+{cls.base_query(table_name)}
+
+SELECT DISTINCT
+    httprequest.uri
+
+FROM base
+
+{cls.build_where_clause(filters)}
+
+AND httprequest.uri IS NOT NULL
+
+ORDER BY 1
+"""
+
+    @classmethod
+    def build_daily_new_rule(
+        cls,
+        filters,
+        table_name
+    ):
+        return f"""
+{cls.base_query(table_name)}
+
+SELECT DISTINCT
+    terminatingruleid
+
+FROM base
+
+{cls.build_where_clause(filters)}
+
+AND terminatingruleid IS NOT NULL
+
+ORDER BY 1
 """
