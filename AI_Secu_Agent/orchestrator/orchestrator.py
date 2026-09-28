@@ -885,7 +885,7 @@ class Orchestrator:
                         ">
                         
                         <h2 style="margin-top:0;">
-                        🚨 Cortex Incident AI Analysis Report
+                        🚨 AI Analysis Report
                         </h2>
                         
                         <div style="
