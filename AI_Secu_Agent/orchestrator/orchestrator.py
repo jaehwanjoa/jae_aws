@@ -913,6 +913,20 @@ class Orchestrator:
                         {incident_detail_json.get('incident_id')}
                         </td>
                         </tr>
+
+                        <tr>
+                        <td style="border:1px solid #ddd;padding:8px;">
+                        <b>Description</b>
+                        </td>
+                        <td style="
+                            border:1px solid #ddd;
+                            padding:8px;
+                            white-space:pre-wrap;
+                            word-break:break-word;
+                        ">
+                        {incident_detail_json.get('description', 'N/A')}
+                        </td>
+                        </tr>
                         
                         <tr>
                         <td style="border:1px solid #ddd;padding:8px;">
