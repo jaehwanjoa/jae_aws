@@ -58,7 +58,19 @@ INTENT_MAPPING = {
         "query_type": "attack_trend",
         "description": "시간대별 공격 추이 분석"
     },
+    
+    "daily_new_uri": {
+        "mcp": "athena",
+        "query_type": "daily_new_uri",
+        "description": "금일 신규 URI 조회"
+    },
 
+    "daily_new_rule": {
+        "mcp": "athena",
+        "query_type": "daily_new_rule",
+        "description": "금일 신규 Rule 조회"
+    },
+    
     "generic_analysis": {
         "mcp": "athena",
         "query_type": "generic_analysis",
