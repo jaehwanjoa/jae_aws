@@ -952,7 +952,7 @@ class Orchestrator:
                         ">
                         
                         <h3 style="margin-top:0;">
-                        AI 분석 결과
+                        분석 결과
                         </h3>
                         
                         {analysis_html}
