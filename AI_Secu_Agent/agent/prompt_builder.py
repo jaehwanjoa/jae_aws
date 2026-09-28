@@ -47,6 +47,10 @@ class PromptBuilder:
 
 - Issue Name
 - Severity
+- Description
+- Module
+- Status
+- Resolution Reason
 - Findings
 - xdm.file.sha256
 - xdm.file.filename
@@ -319,6 +323,10 @@ WildFire 출력 규칙
 
 - Issue Name
 - Severity
+- Description
+- Module
+- Status
+- Resolution Reason
 - Initiator CMD
 - Initiator PID
 - Initiator TID
@@ -508,6 +516,10 @@ Initiator와 CGO가 서로 다른 경우:
 - description이 존재하는 경우 행위 분석 시 참고하되, 실제 Incident Context와 구분한다.
 - description에 없는 행위를 생성하지 않는다.
 - Command Line만으로 description에 없는 실제 행위를 생성하지 않는다.
+- description은 탐지 엔진이 제공한 탐지 근거로 취급한다.
+- description과 실제 Incident Context를 비교 분석한다.
+- resolution_reason이 존재하는 경우 분석에 반영한다.
+- STATUS_060_RESOLVED_FALSE_POSITIVE 인 경우 False Positive로 종료된 이력이 확인된다고 설명한다.
 
 [WildFire 분석]
 - 제공된 Initiator SHA256 및 CGO SHA256과 WildFire Summary의 SHA256을 비교하여
