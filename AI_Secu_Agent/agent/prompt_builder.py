@@ -14,6 +14,17 @@ class PromptBuilder:
 
 다음 CSPM 기반 Malware Incident를 분석하세요.
 
+[문체 규칙]
+- 응답 전체는 반드시 "~입니다", "~합니다" 체를 사용한다.
+- "~다", "~이다", "~됨", "~확인됨", "~식별됨" 형태를 사용하지 않는다.
+- 모든 분석 결과는 경어체로 작성한다.
+- 동일 보고서 내에서 문체를 혼용하지 않는다.
+- 각 문장은 완전한 문장으로 작성한다.
+- 분석가는 보고서를 작성하는 형태로 표현한다.
+- 분석 결과는 현재 시점 기준의 사실 서술 형태로 작성한다.
+- "확인됩니다", "확인되지 않습니다", "관찰됩니다" 표현을 사용한다.
+- "실행되었습니다", "식별되었습니다", "확인되었습니다" 형태의 과거형 표현은 사용하지 않는다.
+
 [CSPM Incident]
 
 {json.dumps(
@@ -275,6 +286,17 @@ WildFire 출력 규칙
 
 다음 Agent 기반 Security Incident를 분석하세요.
 
+[문체 규칙]
+- 응답 전체는 반드시 "~입니다", "~합니다" 체를 사용한다.
+- "~다", "~이다", "~됨", "~확인됨", "~식별됨" 형태를 사용하지 않는다.
+- 모든 분석 결과는 경어체로 작성한다.
+- 동일 보고서 내에서 문체를 혼용하지 않는다.
+- 각 문장은 완전한 문장으로 작성한다.
+- 분석가는 보고서를 작성하는 형태로 표현한다.
+- 분석 결과는 현재 시점 기준의 사실 서술 형태로 작성한다.
+- "확인됩니다", "확인되지 않습니다", "관찰됩니다" 표현을 사용한다.
+- "실행되었습니다", "식별되었습니다", "확인되었습니다" 형태의 과거형 표현은 사용하지 않는다.
+
 [Agent Incident]
 
 {json.dumps(
@@ -436,15 +458,17 @@ Initiator와 CGO가 서로 다른 경우:
 - Command Line의 목적이나 의도를 Context에 근거 없이 추측하지 않는다.
 
 [MITRE ATT&CK 분석]
-- 제공된 MITRE ATT&CK Tactic 및 Technique 정보를 분석에 활용한다.
-- Tactic과 Technique을 구분하여 설명한다.
-- ATT&CK 정보만으로 실제 침해 성공 또는 공격 수행을 단정하지 않는다.
-- Context에 명시된 행위와 ATT&CK 정보가 일치하는 경우 그 관계를 설명한다.
-- Context에 없는 ATT&CK Technique을 임의로 추가하지 않는다.
-- 제공된 MITRE ATT&CK Tactic/Technique은 탐지 시스템이 부여한 분류 정보로 취급한다.
-- MITRE Technique이 존재한다는 사실만으로 해당 Technique의 실제 행위가 수행되었다고 판단하지 않는다.
-- 실제 행위가 Context에 명시적으로 확인되는 경우에만 해당 Technique과 관찰된 행위를 연결하여 설명한다.
-- Context에서 Technique의 실제 행위가 확인되지 않는 경우 "MITRE ATT&CK 분류가 존재하나 해당 행위 자체는 Context에서 확인되지 않음"으로 표현한다.
+- ATT&CK 정의 자체를 설명하지 않는다.
+- ATT&CK 기술의 일반적인 의미를 설명하지 않는다.
+- "TA0005는 Defense Evasion이다" 와 같은 정의 설명을 금지한다.
+- "T1059.004는 Unix Shell 기술이다" 와 같은 기술 설명을 금지한다.
+- ATT&CK 정보는 현재 이벤트와의 연관성 평가에만 사용한다.
+- ATT&CK 분류가 존재하는 경우 실제 Context와의 일치 여부를 설명한다.
+- ATT&CK 분류는 탐지 엔진이 부여한 분류 정보로 취급한다.
+- ATT&CK 분류가 존재하더라도 실제 행위가 Context에서 확인되지 않으면 해당 사실을 명시한다.
+- ATT&CK 분석은 정의 설명이 아닌 행위 연관성 평가 중심으로 작성한다.
+- Tactic 및 Technique 명칭 외 ATT&CK 설명 문장을 생성하지 않는다.
+- ATT&CK 분석 결과는 최대 3문장 이내로 작성한다.
 
 [Host / User / Container 분석]
 - Hostname, Host IP, Host OS, User name을 제공된 Context에 따라 분석한다.
@@ -554,13 +578,14 @@ Initiator와 CGO가 서로 다른 경우:
 - PID, Parent ID, Causality ID를 활용하여 확인 가능한 관계만 설명한다.
 - Context에 없는 Parent/Child 관계는 생성하지 않는다.
 - 분석 결과는 최대 5문장 이내로 작성한다.
+- 동일한 의미의 분석 결과를 다른 표현으로 반복하지 않는다.
 
 3. 행위 분석
 다음 항목을 분석한다.
 
 - Command Line 분석
 - 프로세스 실행 흐름
-- MITRE ATT&CK 의미
+- MITRE ATT&CK 분석
 - Host / User Context
 - Container Context
 
@@ -579,6 +604,11 @@ Initiator와 CGO가 서로 다른 경우:
 - Parent PID와 Initiator PID 관계를 프로세스 실행 흐름 분석에 반영한다.
 - Initiator와 CGO가 동일한 경우 단일 프로세스 컨텍스트로 설명한다.
 - 동일 SHA256, 동일 Command Line, 동일 Causality ID 여부를 프로세스 실행 흐름 분석에 반영한다.
+- MITRE ATT&CK 분석은 ATT&CK 정의를 설명하지 않는다.
+- MITRE ATT&CK 분석은 현재 이벤트와 ATT&CK 분류의 연관성만 평가한다.
+- Context에서 확인되지 않은 Technique 행위를 생성하지 않는다.
+- ATT&CK 분석 결과는 아래 형식을 따른다.
+  ATT&CK 분류가 존재하며 관련 행위는 Context에서 확인됩니다. 또는 ATT&CK 분류가 존재하나 관련 행위는 Context에서 확인되지 않습니다.
 
 4. IOC 및 주요 분석 근거
 아래 항목을 반드시 출력한다.
@@ -659,6 +689,9 @@ WildFire 결과가 없는 경우:
 - SIGNATURE_UNAVAILABLE 또는 미서명 상태만으로 False Positive 또는 악성으로 판정하지 않는다.
 - 명확한 False Positive 근거가 Context에 존재하지 않는 경우 False Positive로 단정하지 않는다.
 - "~일 가능성이 높다", "~일 가능성이 있다", "~로 보인다", "~로 판단된다" 등의 확률성 표현을 사용하지 않는다.
+- 추가 조사 필요성만을 근거로 위험도를 높게 평가하지 않는다.
+- 확인되지 않은 정보의 수집 필요성을 권고 문구로 생성하지 않는다.
+- Context에 없는 조사 항목을 새로 제시하지 않는다.
 
 7. 종합 분석 의견
 
