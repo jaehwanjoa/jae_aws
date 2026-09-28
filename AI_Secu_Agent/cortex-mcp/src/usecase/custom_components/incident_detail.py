@@ -168,14 +168,18 @@ async def get_incident_detail(
                     r"\| Issue Domain \|\s*(.*?)\s*\|",
                 "category_name":
                     r"\| Category Name \|\s*(.*?)\s*\|",
+                "module":
+                    r"\| Module \|\s*(.*?)\s*\|",           
+                "status":
+                    r"\| Status \|\s*(.*?)\s*\|",
+                "resolution_reason":
+                    r"\| Resolution Reason \|\s*(.*?)\s*\|",   
                 "category":
                     r"\| Category \|\s*(.*?)\s*\|",
                 "excluded":
-                    r"\| Excluded \|\s*(.*?)\s*\|",
-                
+                    r"\| Excluded \|\s*(.*?)\s*\|",               
                 "excepted":
-                    r"\| Excepted \|\s*(.*?)\s*\|",
-                
+                    r"\| Excepted \|\s*(.*?)\s*\|",                
                 "is_rule_triggered":
                     r"\| Is rule triggered \|\s*(.*?)\s*\|",
                 "tags":
