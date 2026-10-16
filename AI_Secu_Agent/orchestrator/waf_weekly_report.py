@@ -41,3 +41,15 @@ class WAFWeeklyReport:
         #
         # Teams 전송
         #
+
+print(
+    "===== REPORT DATA ====="
+)
+
+print(
+    json.dumps(
+        report_data,
+        ensure_ascii=False,
+        default=str
+    )
+)
