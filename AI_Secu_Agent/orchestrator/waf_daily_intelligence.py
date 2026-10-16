@@ -1,8 +1,13 @@
 from datetime import datetime
 from datetime import timedelta
 
-from orchestrator.table_catalog import TABLE_CATALOG
-from orchestrator.waf_weekly_queries import WAFWeeklyQueries
+from orchestrator.table_catalog import (
+    TABLE_CATALOG
+)
+
+from mcp_tools.athena_client import (
+    AthenaClient
+)
 
 
 class WAFDailyIntelligence:
@@ -65,52 +70,34 @@ class WAFDailyIntelligence:
             f"PREVIOUS={previous_start} ~ {previous_end}"
         )
 
-        queries = {
+        test_query = f"""
+        SELECT
+            count(*) AS total_count
+        FROM {table_name}
+        """
 
-            "new_ip":
-                WAFWeeklyQueries.get_new_ip_query(
-                    table_name,
-                    current_start,
-                    current_end,
-                    previous_start,
-                    previous_end
-                ),
+        print(
+            "\n===== TEST QUERY ====="
+        )
 
-            "new_rule":
-                WAFWeeklyQueries.get_new_rule_query(
-                    table_name,
-                    current_start,
-                    current_end,
-                    previous_start,
-                    previous_end
-                ),
+        print(
+            test_query
+        )
 
-            "new_domain":
-                WAFWeeklyQueries.get_new_domain_query(
-                    table_name,
-                    current_start,
-                    current_end,
-                    previous_start,
-                    previous_end
-                ),
+        result = AthenaClient.query(
+            database=database,
+            query=test_query
+        )
 
-            "new_user_agent":
-                WAFWeeklyQueries.get_new_user_agent_query(
-                    table_name,
-                    current_start,
-                    current_end,
-                    previous_start,
-                    previous_end
-                )
-        }
+        print(
+            "\n===== RESULT ====="
+        )
 
-        for name, sql in queries.items():
+        print(
+            result
+        )
 
-            print(
-                f"\n===== {name.upper()} ====="
-            )
-
-            print(sql)
+        return result
 
     @classmethod
     def get_weekly_range(
@@ -121,7 +108,9 @@ class WAFDailyIntelligence:
 
         this_monday = (
             today -
-            timedelta(days=today.weekday())
+            timedelta(
+                days=today.weekday()
+            )
         )
 
         current_start = (
