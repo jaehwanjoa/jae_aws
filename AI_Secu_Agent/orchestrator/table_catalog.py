@@ -36,7 +36,7 @@ TABLE_CATALOG = {
 
     "cjl_ue1": {
         "database": "jaehwan-aws-waf", #athena Database
-        "table_name": "ons_cjl-ue1",
+        "table_name": "ons_cjl_ue1",
         "description" : "CJL LandingZone Global WAF Logs"
     }
 }
