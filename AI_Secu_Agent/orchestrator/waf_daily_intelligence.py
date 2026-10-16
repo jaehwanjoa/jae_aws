@@ -91,6 +91,13 @@ class WAFDailyIntelligence:
 
 if __name__ == "__main__":
 
-    WAFDailyIntelligence.run(
-        "ons_cjl_am2"
-    )
+    customers = [
+        "cjl_an2",
+        "cjl_ue1"
+    ]
+
+    for customer in customers:
+
+        WAFDailyIntelligence.run(
+            customer
+        )
