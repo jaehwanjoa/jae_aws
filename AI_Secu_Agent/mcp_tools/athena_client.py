@@ -72,11 +72,25 @@ class AthenaClient:
                 "FAILED",
                 "CANCELLED"
             ]:
-
-                raise Exception(
-                    f"Athena Query {state}"
+            
+                reason = (
+                    response
+                    ["QueryExecution"]
+                    ["Status"]
+                    .get(
+                        "StateChangeReason",
+                        "UNKNOWN"
+                    )
                 )
-
+            
+                print(
+                    f"ATHENA_ERROR={reason}"
+                )
+            
+                raise Exception(
+                    f"Athena Query {state}: {reason}"
+                )
+    
             time.sleep(2)
 
     @classmethod
