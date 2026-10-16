@@ -92,5 +92,5 @@ class WAFDailyIntelligence:
 if __name__ == "__main__":
 
     WAFDailyIntelligence.run(
-        "lotte"
+        "ons_cjl_am2"
     )
