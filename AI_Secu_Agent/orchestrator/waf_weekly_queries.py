@@ -126,7 +126,9 @@ WITH current_rules AS (
 
     FROM {table_name}
 
-    WHERE DATE(
+    WHERE terminatingruleid IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -143,7 +145,9 @@ previous_rules AS (
 
     FROM {table_name}
 
-    WHERE DATE(
+    WHERE terminatingruleid IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -248,7 +252,9 @@ current_domains AS (
 
     FROM base
 
-    WHERE DATE(
+    WHERE host_domain IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -265,7 +271,9 @@ previous_domains AS (
 
     FROM base
 
-    WHERE DATE(
+    WHERE host_domain IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -301,7 +309,15 @@ SELECT
 
 FROM base
 
-WHERE host_domain IN (
+WHERE DATE(
+    from_unixtime(
+        timestamp / 1000
+    )
+)
+BETWEEN DATE '{current_start}'
+AND DATE '{current_end}'
+
+AND host_domain IN (
 
     SELECT host_domain
     FROM new_domains
@@ -357,7 +373,9 @@ current_ua AS (
 
     FROM base
 
-    WHERE DATE(
+    WHERE user_agent IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -374,7 +392,9 @@ previous_ua AS (
 
     FROM base
 
-    WHERE DATE(
+    WHERE user_agent IS NOT NULL
+
+    AND DATE(
         from_unixtime(
             timestamp / 1000
         )
@@ -410,7 +430,15 @@ SELECT
 
 FROM base
 
-WHERE user_agent IN (
+WHERE DATE(
+    from_unixtime(
+        timestamp / 1000
+    )
+)
+BETWEEN DATE '{current_start}'
+AND DATE '{current_end}'
+
+AND user_agent IN (
 
     SELECT user_agent
     FROM new_ua
