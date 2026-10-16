@@ -139,9 +139,10 @@ class WAFWeeklyReport:
             )
 
             try:
-
+                
                 ip_result = (
-                    AthenaClient.run_query(
+                    AthenaClient.query(
+                        database="jaehwan-aws-waf",
                         query=ip_query
                     )
                 )
