@@ -1,45 +1,48 @@
 from datetime import datetime
 from datetime import timedelta
 
+@classmethod
+def get_weekly_range(
+    cls
+):
 
-class WAFDailyIntelligence:
+    today = datetime.now()
 
-    @classmethod
-    def run(
-        cls,
-        customer
-    ):
+    this_monday = (
+        today
+        - timedelta(days=today.weekday())
+    )
 
-        print(
-            f"WAF_WEEKLY_START={customer}"
-        )
+    current_start = (
+        this_monday
+        - timedelta(days=7)
+    )
 
-        date_range = cls.get_weekly_range()
+    current_end = (
+        this_monday
+        - timedelta(days=1)
+    )
 
-        print(date_range)
+    previous_start = (
+        current_start
+        - timedelta(days=7)
+    )
 
-    @classmethod
-    def get_weekly_range(
-        cls
-    ):
+    previous_end = (
+        current_start
+        - timedelta(days=1)
+    )
 
-        today = datetime.now()
+    return {
+        "current_start":
+            current_start.strftime("%Y-%m-%d"),
 
-        current_end = today
+        "current_end":
+            current_end.strftime("%Y-%m-%d"),
 
-        current_start = today - timedelta(days=7)
+        "previous_start":
+            previous_start.strftime("%Y-%m-%d"),
 
-        previous_end = current_start
-
-        previous_start = previous_end - timedelta(days=7)
-
-        return {
-            "current_start":
-                current_start.strftime("%Y-%m-%d"),
-            "current_end":
-                current_end.strftime("%Y-%m-%d"),
-            "previous_start":
-                previous_start.strftime("%Y-%m-%d"),
-            "previous_end":
-                previous_end.strftime("%Y-%m-%d")
-        }
+        "previous_end":
+            previous_end.strftime("%Y-%m-%d")
+    }
