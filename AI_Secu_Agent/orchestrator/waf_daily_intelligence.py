@@ -2,6 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 
 from orchestrator.table_catalog import TABLE_CATALOG
+from orchestrator.waf_weekly_queries import WAFWeeklyQueries
 
 
 class WAFDailyIntelligence:
@@ -22,17 +23,94 @@ class WAFDailyIntelligence:
                 f"UNKNOWN CUSTOMER={customer}"
             )
 
-        print(
-            f"DATABASE={table_info['database']}"
-        )
+        database = table_info[
+            "database"
+        ]
 
-        print(
-            f"TABLE={table_info['table_name']}"
-        )
+        table_name = table_info[
+            "table_name"
+        ]
 
         date_range = cls.get_weekly_range()
 
-        print(date_range)
+        current_start = date_range[
+            "current_start"
+        ]
+
+        current_end = date_range[
+            "current_end"
+        ]
+
+        previous_start = date_range[
+            "previous_start"
+        ]
+
+        previous_end = date_range[
+            "previous_end"
+        ]
+
+        print(
+            f"DATABASE={database}"
+        )
+
+        print(
+            f"TABLE={table_name}"
+        )
+
+        print(
+            f"CURRENT={current_start} ~ {current_end}"
+        )
+
+        print(
+            f"PREVIOUS={previous_start} ~ {previous_end}"
+        )
+
+        queries = {
+
+            "new_ip":
+                WAFWeeklyQueries.get_new_ip_query(
+                    table_name,
+                    current_start,
+                    current_end,
+                    previous_start,
+                    previous_end
+                ),
+
+            "new_rule":
+                WAFWeeklyQueries.get_new_rule_query(
+                    table_name,
+                    current_start,
+                    current_end,
+                    previous_start,
+                    previous_end
+                ),
+
+            "new_domain":
+                WAFWeeklyQueries.get_new_domain_query(
+                    table_name,
+                    current_start,
+                    current_end,
+                    previous_start,
+                    previous_end
+                ),
+
+            "new_user_agent":
+                WAFWeeklyQueries.get_new_user_agent_query(
+                    table_name,
+                    current_start,
+                    current_end,
+                    previous_start,
+                    previous_end
+                )
+        }
+
+        for name, sql in queries.items():
+
+            print(
+                f"\n===== {name.upper()} ====="
+            )
+
+            print(sql)
 
     @classmethod
     def get_weekly_range(
@@ -67,6 +145,7 @@ class WAFDailyIntelligence:
         )
 
         return {
+
             "current_start":
                 current_start.strftime(
                     "%Y-%m-%d"
@@ -91,13 +170,6 @@ class WAFDailyIntelligence:
 
 if __name__ == "__main__":
 
-    customers = [
-        "cjl_an2",
-        "cjl_ue1"
-    ]
-
-    for customer in customers:
-
-        WAFDailyIntelligence.run(
-            customer
-        )
+    WAFDailyIntelligence.run(
+        "cjl_an2"
+    )
