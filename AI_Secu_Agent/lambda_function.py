@@ -3,8 +3,8 @@ import boto3
 
 from orchestrator import Orchestrator
 
-from orchestrator.waf_daily_intelligence import (
-    WAFDailyIntelligence
+from orchestrator.waf_weekly_report import (
+    WAFWeeklyReport
 )
 
 s3 = boto3.client("s3")
@@ -18,20 +18,18 @@ def lambda_handler(event, context):
     #################################################
     # WAF Weekly Report
     #################################################
-
     if (
         event.get("report_type")
         == "weekly_waf"
     ):
-
+    
         print(
             "START_WAF_WEEKLY_REPORT"
         )
-
+    
         return (
-            WAFDailyIntelligence.run()
+            WAFWeeklyReport.run()
         )
-
     #################################################
     # S3 Event
     #################################################
