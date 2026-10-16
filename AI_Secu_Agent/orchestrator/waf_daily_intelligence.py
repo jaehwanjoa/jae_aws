@@ -1,6 +1,8 @@
 from datetime import datetime
 from datetime import timedelta
 
+from orchestrator.table_catalog import TABLE_CATALOG
+
 
 class WAFDailyIntelligence:
 
@@ -10,23 +12,27 @@ class WAFDailyIntelligence:
         customer
     ):
 
+        table_info = TABLE_CATALOG.get(
+            customer
+        )
+
+        if not table_info:
+
+            raise ValueError(
+                f"UNKNOWN CUSTOMER={customer}"
+            )
+
         print(
-            f"WAF_WEEKLY_START={customer}"
+            f"DATABASE={table_info['database']}"
+        )
+
+        print(
+            f"TABLE={table_info['table_name']}"
         )
 
         date_range = cls.get_weekly_range()
 
-        print(
-            f"CURRENT={date_range['current_start']} ~ "
-            f"{date_range['current_end']}"
-        )
-
-        print(
-            f"PREVIOUS={date_range['previous_start']} ~ "
-            f"{date_range['previous_end']}"
-        )
-
-        return date_range
+        print(date_range)
 
     @classmethod
     def get_weekly_range(
@@ -35,13 +41,11 @@ class WAFDailyIntelligence:
 
         today = datetime.now()
 
-        # 이번 주 월요일
         this_monday = (
             today -
             timedelta(days=today.weekday())
         )
 
-        # 분석 대상 주간 (지난주 월~일)
         current_start = (
             this_monday -
             timedelta(days=7)
@@ -52,7 +56,6 @@ class WAFDailyIntelligence:
             timedelta(days=1)
         )
 
-        # 비교 대상 주간 (그 이전 주 월~일)
         previous_start = (
             current_start -
             timedelta(days=7)
@@ -89,5 +92,5 @@ class WAFDailyIntelligence:
 if __name__ == "__main__":
 
     WAFDailyIntelligence.run(
-        "CJ"
+        "lotte"
     )
