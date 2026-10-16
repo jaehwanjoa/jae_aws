@@ -1,85 +1,48 @@
 class WAFWeeklyQueries:
 
     @classmethod
-    def get_union_cte(
-        cls,
-        table_names
-    ):
-
-        union_queries = []
-
-        for table_name in table_names:
-
-            union_queries.append(
-                f"""
-                SELECT *
-                FROM {table_name}
-                """
-            )
-
-        union_sql = (
-            "\nUNION ALL\n"
-        ).join(
-            union_queries
-        )
-
-        return f"""
-WITH waf_logs AS (
-
-{union_sql}
-
-)
-"""
-
-    @classmethod
     def get_new_ip_query(
         cls,
-        table_names,
+        table_name,
         current_start,
         current_end,
         previous_start,
         previous_end
     ):
 
-        union_cte = (
-            cls.get_union_cte(
-                table_names
-            )
-        )
-
         return f"""
-{union_cte},
-
-current_week AS (
+WITH current_week AS (
 
     SELECT
         httprequest.clientip
 
-    FROM waf_logs
+    FROM {table_name}
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{current_start}'
     AND DATE '{current_end}'
+
 ),
 
 previous_week AS (
 
-    SELECT
+    SELECT DISTINCT
         httprequest.clientip
 
-    FROM waf_logs
+    FROM {table_name}
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{previous_start}'
     AND DATE '{previous_end}'
+
 ),
 
 new_ips AS (
@@ -95,6 +58,7 @@ new_ips AS (
         clientip
 
     FROM previous_week
+
 )
 
 SELECT
@@ -120,9 +84,17 @@ SELECT
     )
         AS count_count
 
-FROM waf_logs
+FROM {table_name}
 
-WHERE httprequest.clientip IN (
+WHERE DATE(
+    from_unixtime(
+        timestamp / 1000
+    )
+)
+BETWEEN DATE '{current_start}'
+AND DATE '{current_end}'
+
+AND httprequest.clientip IN (
 
     SELECT clientip
     FROM new_ips
@@ -139,36 +111,29 @@ LIMIT 10
     @classmethod
     def get_new_rule_query(
         cls,
-        table_names,
+        table_name,
         current_start,
         current_end,
         previous_start,
         previous_end
     ):
 
-        union_cte = (
-            cls.get_union_cte(
-                table_names
-            )
-        )
-
         return f"""
-{union_cte},
-
-current_rules AS (
+WITH current_rules AS (
 
     SELECT DISTINCT
         terminatingruleid
 
-    FROM waf_logs
+    FROM {table_name}
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{current_start}'
     AND DATE '{current_end}'
+
 ),
 
 previous_rules AS (
@@ -176,15 +141,16 @@ previous_rules AS (
     SELECT DISTINCT
         terminatingruleid
 
-    FROM waf_logs
+    FROM {table_name}
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{previous_start}'
     AND DATE '{previous_end}'
+
 ),
 
 new_rules AS (
@@ -196,6 +162,7 @@ new_rules AS (
 
     SELECT *
     FROM previous_rules
+
 )
 
 SELECT
@@ -215,9 +182,17 @@ SELECT
     )
         AS count_count
 
-FROM waf_logs
+FROM {table_name}
 
-WHERE terminatingruleid IN (
+WHERE DATE(
+    from_unixtime(
+        timestamp / 1000
+    )
+)
+BETWEEN DATE '{current_start}'
+AND DATE '{current_end}'
+
+AND terminatingruleid IN (
 
     SELECT terminatingruleid
     FROM new_rules
@@ -234,23 +209,15 @@ LIMIT 10
     @classmethod
     def get_new_domain_query(
         cls,
-        table_names,
+        table_name,
         current_start,
         current_end,
         previous_start,
         previous_end
     ):
 
-        union_cte = (
-            cls.get_union_cte(
-                table_names
-            )
-        )
-
         return f"""
-{union_cte},
-
-base AS (
+WITH base AS (
 
     SELECT
 
@@ -265,11 +232,13 @@ base AS (
                 )
             ),
             'host'
-        ) AS host_domain,
+        )
+        AS host_domain,
 
         *
 
-    FROM waf_logs
+    FROM {table_name}
+
 ),
 
 current_domains AS (
@@ -279,13 +248,14 @@ current_domains AS (
 
     FROM base
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{current_start}'
     AND DATE '{current_end}'
+
 ),
 
 previous_domains AS (
@@ -295,13 +265,14 @@ previous_domains AS (
 
     FROM base
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{previous_start}'
     AND DATE '{previous_end}'
+
 ),
 
 new_domains AS (
@@ -313,6 +284,7 @@ new_domains AS (
 
     SELECT *
     FROM previous_domains
+
 )
 
 SELECT
@@ -346,23 +318,15 @@ LIMIT 10
     @classmethod
     def get_new_user_agent_query(
         cls,
-        table_names,
+        table_name,
         current_start,
         current_end,
         previous_start,
         previous_end
     ):
 
-        union_cte = (
-            cls.get_union_cte(
-                table_names
-            )
-        )
-
         return f"""
-{union_cte},
-
-base AS (
+WITH base AS (
 
     SELECT
 
@@ -377,11 +341,13 @@ base AS (
                 )
             ),
             'user-agent'
-        ) AS user_agent,
+        )
+        AS user_agent,
 
         *
 
-    FROM waf_logs
+    FROM {table_name}
+
 ),
 
 current_ua AS (
@@ -391,13 +357,14 @@ current_ua AS (
 
     FROM base
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{current_start}'
     AND DATE '{current_end}'
+
 ),
 
 previous_ua AS (
@@ -407,13 +374,14 @@ previous_ua AS (
 
     FROM base
 
-    WHERE date(
+    WHERE DATE(
         from_unixtime(
             timestamp / 1000
         )
     )
     BETWEEN DATE '{previous_start}'
     AND DATE '{previous_end}'
+
 ),
 
 new_ua AS (
@@ -425,6 +393,7 @@ new_ua AS (
 
     SELECT *
     FROM previous_ua
+
 )
 
 SELECT
