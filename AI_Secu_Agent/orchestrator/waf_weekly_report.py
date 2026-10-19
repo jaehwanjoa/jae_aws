@@ -200,7 +200,7 @@ class WAFWeeklyReport:
         
                 current_query = (
                     WAFWeeklyQueries
-                    .get_weekly_query(
+                    .get_weekly_summary_query(
                         table_name,
                         current_start,
                         current_end
@@ -209,7 +209,7 @@ class WAFWeeklyReport:
         
                 previous_query = (
                     WAFWeeklyQueries
-                    .get_weekly_query(
+                    .get_weekly_summary_query(
                         table_name,
                         previous_start,
                         previous_end
