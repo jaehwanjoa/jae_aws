@@ -105,14 +105,12 @@ class WAFWeeklyReport:
             }
         
             try:
-
+                
                 rule_rows = AthenaClient.query(
                     database="jaehwan-aws-waf",
                     query=WAFWeeklyQueries.get_rule_summary_query(
                         table_name,
                         previous_start,
-                        previous_end,
-                        current_start,
                         current_end
                     )
                 )
@@ -146,15 +144,15 @@ class WAFWeeklyReport:
                 
                 report_data[waf_type] = {
                 
-                    "new_ip": ip_rows[:5],
+                    "new_ip": ip_rows,
                 
-                    "top_rule": rule_rows[:5],
+                    "top_rule": rule_rows,
                 
-                    "new_domain": domain_rows[:5],
+                    "new_domain": domain_rows,
                 
-                    "new_user_agent": ua_rows[:5]
+                    "new_user_agent": ua_rows
                 
-                }
+                }                
             
                 print(
                     f"===== {waf_type} SUMMARY ====="
