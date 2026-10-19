@@ -16,7 +16,7 @@ from mcp_tools.athena_client import (
 from orchestrator.waf_weekly_queries import (
     WAFWeeklyQueries
 )
-
+Fcu
 class WAFWeeklyReport:
 
     TABLES = {
@@ -473,47 +473,35 @@ class WAFWeeklyReport:
             }
         
             try:
-        
-                current_query = (
-                    WAFWeeklyQueries
-                    .get_weekly_summary_query(
-                        table_name,
-                        current_start,
-                        current_end
-                    )
-                )
-        
-                previous_query = (
+
+                summary_query = (
                     WAFWeeklyQueries
                     .get_weekly_summary_query(
                         table_name,
                         previous_start,
-                        previous_end
+                        previous_end,
+                        current_start,
+                        current_end
                     )
                 )
-        
-                print(
-                    f"===== {waf_type} CURRENT QUERY ====="
+                
+                summary_rows = AthenaClient.query(
+                    database="jaehwan-aws-waf",
+                    query=summary_query
                 )
-        
-                current_result = (
-                    AthenaClient.query(
-                        database="jaehwan-aws-waf",
-                        query=current_query
-                    )
-                )
-        
-                print(
-                    f"===== {waf_type} PREVIOUS QUERY ====="
-                )
-        
-                previous_result = (
-                    AthenaClient.query(
-                        database="jaehwan-aws-waf",
-                        query=previous_query
-                    )
-                )
-        
+                
+                current_result = [
+                    row
+                    for row in summary_rows
+                    if row.get("period") == "CURRENT"
+                ]
+                
+                previous_result = [
+                    row
+                    for row in summary_rows
+                    if row.get("period") == "PREVIOUS"
+                ]            
+ 
                 report_data[waf_type] = (
                     cls.build_summary(
                         current_result,
