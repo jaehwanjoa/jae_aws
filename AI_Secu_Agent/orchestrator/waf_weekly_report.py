@@ -490,16 +490,32 @@ class WAFWeeklyReport:
                     query=summary_query
                 )
                 
+                print(
+                    "===== SAMPLE ROWS ====="
+                )
+                
+                print(
+                    json.dumps(
+                        summary_rows[:5],
+                        ensure_ascii=False,
+                        indent=2
+                    )
+                )
+                                
                 current_result = [
                     row
                     for row in summary_rows
-                    if row.get("period") == "CURRENT"
+                    if str(
+                        row.get("period", "")
+                    ).strip().upper() == "CURRENT"
                 ]
                 
                 previous_result = [
                     row
                     for row in summary_rows
-                    if row.get("period") == "PREVIOUS"
+                    if str(
+                        row.get("period", "")
+                    ).strip().upper() == "PREVIOUS"
                 ]            
 
                 print(
