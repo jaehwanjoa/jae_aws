@@ -5,6 +5,8 @@ class WAFWeeklyQueries:
         cls,
         table_name,
         previous_start,
+        previous_end,
+        current_start,
         current_end
     ):
 
@@ -12,16 +14,18 @@ class WAFWeeklyQueries:
 SELECT
 
     CASE
+
         WHEN DATE(
             from_unixtime(
                 timestamp / 1000
             )
         )
         BETWEEN DATE '{previous_start}'
-            AND DATE '{current_end - timedelta(days=7)}'
+            AND DATE '{previous_end}'
         THEN 'PREVIOUS'
 
         ELSE 'CURRENT'
+
     END AS period,
 
     httprequest.clientip
