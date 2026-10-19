@@ -16,7 +16,7 @@ from mcp_tools.athena_client import (
 from orchestrator.waf_weekly_queries import (
     WAFWeeklyQueries
 )
-Fcu
+
 class WAFWeeklyReport:
 
     TABLES = {
