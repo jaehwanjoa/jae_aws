@@ -98,7 +98,7 @@ class WAFWeeklyReport:
             result,
             key=lambda x: x["hit_count"],
             reverse=True
-        )[:10]
+        )[:5]
         
 
     @staticmethod
@@ -177,7 +177,7 @@ class WAFWeeklyReport:
             results,
             key=lambda x: x["hit_count"],
             reverse=True
-        )[:10]    
+        )[:5]    
 
     @staticmethod
     def build_new_user_agents(
@@ -269,7 +269,7 @@ class WAFWeeklyReport:
             results,
             key=lambda x: x["request_count"],
             reverse=True
-        )[:10]
+        )[:5]
     
     @staticmethod
     def build_rule_growth(
@@ -362,7 +362,7 @@ class WAFWeeklyReport:
             results,
             key=lambda x: x["increase"],
             reverse=True
-        )[:10]
+        )[:5]
     
     @classmethod
     def build_summary(
