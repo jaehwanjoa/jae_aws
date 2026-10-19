@@ -14,7 +14,7 @@ class WAFWeeklyQueries:
 SELECT
 
     CASE
-
+    
         WHEN DATE(
             from_unixtime(
                 timestamp / 1000
@@ -23,9 +23,16 @@ SELECT
         BETWEEN DATE '{previous_start}'
             AND DATE '{previous_end}'
         THEN 'PREVIOUS'
-
-        ELSE 'CURRENT'
-
+    
+        WHEN DATE(
+            from_unixtime(
+                timestamp / 1000
+            )
+        )
+        BETWEEN DATE '{current_start}'
+            AND DATE '{current_end}'
+        THEN 'CURRENT'
+    
     END AS period,
 
     httprequest.clientip
