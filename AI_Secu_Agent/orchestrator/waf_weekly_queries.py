@@ -5,15 +5,11 @@ class WAFWeeklyQueries:
         cls,
         table_name,
         previous_start,
-        previous_end,
-        current_start,
         current_end
     ):
     
         return f"""
     SELECT
-    
-        period,
     
         terminatingruleid AS rule_id,
     
@@ -27,38 +23,19 @@ class WAFWeeklyQueries:
             action = 'COUNT'
         ) AS count_count
     
-    FROM (
+    FROM {table_name}
     
-        SELECT
-    
-            CASE
-    
-                WHEN DATE(
-                    from_unixtime(timestamp / 1000)
-                )
-                BETWEEN DATE '{previous_start}'
-                AND DATE '{previous_end}'
-                THEN 'PREVIOUS'
-    
-                ELSE 'CURRENT'
-    
-            END AS period,
-    
-            terminatingruleid,
-    
-            action
-    
-        FROM {table_name}
-    
-        WHERE DATE(
-            from_unixtime(timestamp / 1000)
-        )
-        BETWEEN DATE '{previous_start}'
-        AND DATE '{current_end}'
-    
+    WHERE DATE(
+        from_unixtime(timestamp / 1000)
     )
+    BETWEEN DATE '{previous_start}'
+    AND DATE '{current_end}'
     
-    GROUP BY 1,2
+    GROUP BY 1
+    
+    ORDER BY hit_count DESC
+    
+    LIMIT 5
     """
 
     @classmethod
