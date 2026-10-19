@@ -77,7 +77,7 @@ class WAFWeeklyReport:
         
         start_ts = int(
             datetime.combine(
-                previous_start,
+                current_start,
                 datetime.min.time()
             ).timestamp() * 1000
         )
@@ -118,13 +118,12 @@ class WAFWeeklyReport:
             print(
                 f"TABLE={table_name}"
             )
-        
+            
             report_data[waf_type] = {
-                "new_ip": [],
                 "top_rule": [],
-                "new_domain": [],
-                "new_user_agent": []
-            }
+                "top_ip": [],
+                "top_domain": []
+            }        
         
             try:
                 
@@ -155,26 +154,15 @@ class WAFWeeklyReport:
                     )
                 )
                 
-                ua_rows = AthenaClient.query(
-                    database="jaehwan-aws-waf",
-                    query=WAFWeeklyQueries.get_ua_summary_query(
-                        table_name,
-                        start_ts,
-                        end_ts
-                    )
-                )
-                
                 report_data[waf_type] = {
-                
-                    "new_ip": ip_rows,
                 
                     "top_rule": rule_rows,
                 
-                    "new_domain": domain_rows,
+                    "top_ip": ip_rows,
                 
-                    "new_user_agent": ua_rows
+                    "top_domain": domain_rows
                 
-                }                
+                }                               
             
                 print(
                     f"===== {waf_type} SUMMARY ====="
