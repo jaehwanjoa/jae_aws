@@ -74,7 +74,29 @@ class WAFWeeklyReport:
         print(
             f"PREVIOUS={previous_start} ~ {previous_end}"
         )
-
+        
+        start_ts = int(
+            datetime.combine(
+                previous_start,
+                datetime.min.time()
+            ).timestamp() * 1000
+        )
+        
+        end_ts = int(
+            datetime.combine(
+                current_end,
+                datetime.max.time()
+            ).timestamp() * 1000
+        )
+        
+        print(
+            f"START_TS={start_ts}"
+        )
+        
+        print(
+            f"END_TS={end_ts}"
+        )
+        
         #
         # 결과 저장
         #
