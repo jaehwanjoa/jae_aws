@@ -94,7 +94,7 @@ class WAFWeeklyQueries:
     
     GROUP BY 1
     ORDER BY hit_count DESC
-    LIMIT 100
+    LIMIT 5
     """
 
     @classmethod
@@ -130,7 +130,7 @@ class WAFWeeklyQueries:
     
     GROUP BY 1
     ORDER BY hit_count DESC
-    LIMIT 100
+    LIMIT 5
     """
 
     @classmethod
@@ -170,6 +170,6 @@ class WAFWeeklyQueries:
     
     GROUP BY 1
     ORDER BY request_count DESC
-    LIMIT 100
+    LIMIT 5
     """
 
