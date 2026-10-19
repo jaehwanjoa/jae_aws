@@ -501,7 +501,22 @@ class WAFWeeklyReport:
                     for row in summary_rows
                     if row.get("period") == "PREVIOUS"
                 ]            
- 
+
+                print(
+                    f"{waf_type} TOTAL COUNT="
+                    f"{len(summary_rows)}"
+                )
+                
+                print(
+                    f"{waf_type} CURRENT COUNT="
+                    f"{len(current_result)}"
+                )
+                
+                print(
+                    f"{waf_type} PREVIOUS COUNT="
+                    f"{len(previous_result)}"
+                )                
+                
                 report_data[waf_type] = (
                     cls.build_summary(
                         current_result,
@@ -577,7 +592,6 @@ class WAFWeeklyReport:
         print(
             prompt
         )
-
 
 
         #
