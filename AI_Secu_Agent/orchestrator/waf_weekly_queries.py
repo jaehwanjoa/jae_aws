@@ -19,31 +19,25 @@ SELECT
 
     action,
 
-    element_at(
-        map_from_entries(
-            transform(
+    try(
+        element_at(
+            filter(
                 httprequest.headers,
-                x -> (
-                    lower(x.name),
-                    x.value
-                )
-            )
-        ),
-        'host'
+                x -> lower(x.name) = 'host'
+            ),
+            1
+        ).value
     )
         AS host_domain,
 
-    element_at(
-        map_from_entries(
-            transform(
+    try(
+        element_at(
+            filter(
                 httprequest.headers,
-                x -> (
-                    lower(x.name),
-                    x.value
-                )
-            )
-        ),
-        'user-agent'
+                x -> lower(x.name) = 'user-agent'
+            ),
+            1
+        ).value
     )
         AS user_agent
 
