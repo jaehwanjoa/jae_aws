@@ -17,8 +17,6 @@ from orchestrator.waf_weekly_queries import (
     WAFWeeklyQueries
 )
 
-from collections import Counter
-
 class WAFWeeklyReport:
 
     TABLES = {
@@ -32,96 +30,374 @@ class WAFWeeklyReport:
     }
 
     @staticmethod
-    def build_summary(
+    def build_new_ips(
         current_rows,
         previous_rows
     ):
     
-        current_ips = {
-            r.get("source_ip")
-            for r in current_rows
-            if r.get("source_ip")
-        }
-    
         previous_ips = {
-            r.get("source_ip")
+            r["source_ip"]
             for r in previous_rows
             if r.get("source_ip")
         }
     
-        current_rules = {
-            r.get("rule_id")
-            for r in current_rows
-            if r.get("rule_id")
-        }
-    
-        previous_rules = {
-            r.get("rule_id")
-            for r in previous_rows
-            if r.get("rule_id")
-        }
-    
-        current_domains = {
-            r.get("host_domain")
-            for r in current_rows
-            if r.get("host_domain")
-        }
-    
-        previous_domains = {
-            r.get("host_domain")
-            for r in previous_rows
-            if r.get("host_domain")
-        }
-    
-        current_ua = {
-            r.get("user_agent")
-            for r in current_rows
-            if r.get("user_agent")
-        }
-    
-        previous_ua = {
-            r.get("user_agent")
-            for r in previous_rows
-            if r.get("user_agent")
-        }
-    
-        new_ips = current_ips - previous_ips
-        new_rules = current_rules - previous_rules
-        new_domains = current_domains - previous_domains
-        new_user_agents = current_ua - previous_ua
-    
-        ip_counter = Counter()
-        rule_counter = Counter()
-        domain_counter = Counter()
-        ua_counter = Counter()
+        stats = {}
     
         for row in current_rows:
     
             ip = row.get("source_ip")
+    
+            if not ip:
+                continue
+    
+            if ip in previous_ips:
+                continue
+    
+            if ip not in stats:
+    
+                stats[ip] = {
+                    "hit_count": 0,
+                    "block_count": 0,
+                    "count_count": 0,
+                    "domains": set(),
+                    "rules": set()
+                }
+    
+            stats[ip]["hit_count"] += 1
+    
+            if row.get("action") == "BLOCK":
+                stats[ip]["block_count"] += 1
+    
+            if row.get("action") == "COUNT":
+                stats[ip]["count_count"] += 1
+    
+            if row.get("host_domain"):
+                stats[ip]["domains"].add(
+                    row["host_domain"]
+                )
+    
+            if row.get("rule_id"):
+                stats[ip]["rules"].add(
+                    row["rule_id"]
+                )
+    
+        result = []
+    
+        for ip, stat in stats.items():
+    
+            result.append({
+                "ip": ip,
+                "hit_count": stat["hit_count"],
+                "block_count": stat["block_count"],
+                "count_count": stat["count_count"],
+                "domains": list(stat["domains"]),
+                "rules": list(stat["rules"])
+            })
+    
+        return sorted(
+            result,
+            key=lambda x: x["hit_count"],
+            reverse=True
+        )[:10]
+        
+
+    @staticmethod
+    def build_new_domains(
+        current_rows,
+        previous_rows
+    ):
+    
+        previous_domains = {
+            r["host_domain"]
+            for r in previous_rows
+            if r.get("host_domain")
+        }
+    
+        stats = {}
+    
+        for row in current_rows:
+    
+            domain = row.get(
+                "host_domain"
+            )
+    
+            if not domain:
+                continue
+    
+            if domain in previous_domains:
+                continue
+    
+            if domain not in stats:
+    
+                stats[domain] = {
+                    "hit_count": 0,
+                    "rules": {}
+                }
+    
+            stats[domain]["hit_count"] += 1
+    
+            rule = row.get(
+                "rule_id"
+            )
+    
+            if rule:
+    
+                stats[domain]["rules"][
+                    rule
+                ] = (
+                    stats[domain]["rules"]
+                    .get(
+                        rule,
+                        0
+                    )
+                    + 1
+                )
+    
+        results = []
+    
+        for domain, stat in stats.items():
+    
+            top_rule = None
+    
+            if stat["rules"]:
+    
+                top_rule = max(
+                    stat["rules"],
+                    key=stat["rules"].get
+                )
+    
+            results.append({
+                "domain": domain,
+                "hit_count": stat["hit_count"],
+                "top_rule": top_rule,
+                "review_status": "UNKNOWN"
+            })
+    
+        return sorted(
+            results,
+            key=lambda x: x["hit_count"],
+            reverse=True
+        )[:10]    
+
+    @staticmethod
+    def build_new_user_agents(
+        current_rows,
+        previous_rows
+    ):
+    
+        previous_ua = {
+            r["user_agent"]
+            for r in previous_rows
+            if r.get("user_agent")
+        }
+    
+        stats = {}
+    
+        for row in current_rows:
+    
+            ua = row.get(
+                "user_agent"
+            )
+    
+            if not ua:
+                continue
+    
+            if ua in previous_ua:
+                continue
+    
+            if ua not in stats:
+    
+                stats[ua] = {
+                    "request_count": 0,
+                    "ips": {},
+                    "domains": set()
+                }
+    
+            stats[ua]["request_count"] += 1
+    
+            ip = row.get(
+                "source_ip"
+            )
+    
+            if ip:
+    
+                stats[ua]["ips"][ip] = (
+                    stats[ua]["ips"]
+                    .get(ip, 0)
+                    + 1
+                )
+    
+            domain = row.get(
+                "host_domain"
+            )
+    
+            if domain:
+                stats[ua]["domains"].add(
+                    domain
+                )
+    
+        results = []
+    
+        for ua, stat in stats.items():
+    
+            top_ip = None
+    
+            if stat["ips"]:
+    
+                top_ip = max(
+                    stat["ips"],
+                    key=stat["ips"].get
+                )
+    
+            results.append({
+                "user_agent": ua,
+                "request_count":
+                    stat["request_count"],
+                "ip_count":
+                    len(
+                        stat["ips"]
+                    ),
+                "top_ip":
+                    top_ip,
+                "domains":
+                    list(
+                        stat["domains"]
+                    )
+            })
+    
+        return sorted(
+            results,
+            key=lambda x: x["request_count"],
+            reverse=True
+        )[:10]
+    
+    @staticmethod
+    def build_rule_growth(
+        current_rows,
+        previous_rows
+    ):
+    
+        current_stats = {}
+        previous_stats = {}
+    
+        for row in current_rows:
+    
             rule = row.get("rule_id")
-            domain = row.get("host_domain")
-            ua = row.get("user_agent")
     
-            if ip in new_ips:
-                ip_counter[ip] += 1
+            if not rule:
+                continue
     
-            if rule in new_rules:
-                rule_counter[rule] += 1
+            if rule not in current_stats:
     
-            if domain in new_domains:
-                domain_counter[domain] += 1
+                current_stats[rule] = {
+                    "count": 0,
+                    "block_count": 0,
+                    "count_count": 0
+                }
     
-            if ua in new_user_agents:
-                ua_counter[ua] += 1
+            current_stats[rule]["count"] += 1
+    
+            if row.get("action") == "BLOCK":
+                current_stats[rule]["block_count"] += 1
+    
+            elif row.get("action") == "COUNT":
+                current_stats[rule]["count_count"] += 1
+    
+        for row in previous_rows:
+    
+            rule = row.get("rule_id")
+    
+            if not rule:
+                continue
+    
+            previous_stats[rule] = (
+                previous_stats.get(
+                    rule,
+                    0
+                )
+                + 1
+            )
+    
+        results = []
+    
+        for rule, stat in current_stats.items():
+    
+            current_count = stat["count"]
+    
+            previous_count = previous_stats.get(
+                rule,
+                0
+            )
+    
+            increase = (
+                current_count
+                - previous_count
+            )
+    
+            increase_rate = 100
+    
+            if previous_count > 0:
+    
+                increase_rate = round(
+                    (
+                        increase
+                        /
+                        previous_count
+                    )
+                    * 100,
+                    2
+                )
+    
+            results.append({
+                "rule_id": rule,
+                "current_count": current_count,
+                "previous_count": previous_count,
+                "increase": increase,
+                "increase_rate": increase_rate,
+                "block_count": stat["block_count"],
+                "count_count": stat["count_count"]
+            })
+    
+        return sorted(
+            results,
+            key=lambda x: x["increase"],
+            reverse=True
+        )[:10]
+    
+    @classmethod
+    def build_summary(
+        cls,
+        current_rows,
+        previous_rows
+    ):
     
         return {
-            "new_ip": ip_counter.most_common(10),
-            "new_rule": rule_counter.most_common(10),
-            "new_domain": domain_counter.most_common(10),
-            "new_user_agent": ua_counter.most_common(10)
-        }    
-
-
+    
+            "new_ip":
+                cls.build_new_ips(
+                    current_rows,
+                    previous_rows
+                ),
+    
+            "top_rule":
+                cls.build_rule_growth(
+                    current_rows,
+                    previous_rows
+                ),
+    
+            "new_domain":
+                cls.build_new_domains(
+                    current_rows,
+                    previous_rows
+                ),
+    
+            "new_user_agent":
+                cls.build_new_user_agents(
+                    current_rows,
+                    previous_rows
+                )
+        }
+    
     @classmethod
     def run(
         cls
@@ -191,7 +467,7 @@ class WAFWeeklyReport:
         
             report_data[waf_type] = {
                 "new_ip": [],
-                "new_rule": [],
+                "top_rule": [],
                 "new_domain": [],
                 "new_user_agent": []
             }
