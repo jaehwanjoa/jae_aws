@@ -1,11 +1,11 @@
 class WAFWeeklyQueries:
-
+    
     @classmethod
     def get_rule_summary_query(
         cls,
         table_name,
-        previous_start,
-        current_end
+        start_ts,
+        end_ts
     ):
     
         return f"""
@@ -25,25 +25,23 @@ class WAFWeeklyQueries:
     
     FROM {table_name}
     
-    WHERE DATE(
-        from_unixtime(timestamp / 1000)
-    )
-    BETWEEN DATE '{previous_start}'
-    AND DATE '{current_end}'
+    WHERE timestamp
+    BETWEEN {start_ts}
+    AND {end_ts}
     
     GROUP BY 1
     
     ORDER BY hit_count DESC
     
     LIMIT 5
-    """
+    """    
 
     @classmethod
     def get_ip_summary_query(
         cls,
         table_name,
-        previous_start,
-        current_end
+        start_ts,
+        end_ts
     ):
     
         return f"""
@@ -63,14 +61,14 @@ class WAFWeeklyQueries:
     
     FROM {table_name}
     
-    WHERE DATE(
-        from_unixtime(timestamp / 1000)
-    )
-    BETWEEN DATE '{previous_start}'
-    AND DATE '{current_end}'
+    WHERE timestamp
+    BETWEEN {start_ts}
+    AND {end_ts}
     
     GROUP BY 1
+    
     ORDER BY hit_count DESC
+    
     LIMIT 5
     """
 
@@ -78,8 +76,8 @@ class WAFWeeklyQueries:
     def get_domain_summary_query(
         cls,
         table_name,
-        previous_start,
-        current_end
+        start_ts,
+        end_ts
     ):
     
         return f"""
@@ -99,14 +97,14 @@ class WAFWeeklyQueries:
     
     FROM {table_name}
     
-    WHERE DATE(
-        from_unixtime(timestamp / 1000)
-    )
-    BETWEEN DATE '{previous_start}'
-    AND DATE '{current_end}'
+    WHERE timestamp
+    BETWEEN {start_ts}
+    AND {end_ts}
     
     GROUP BY 1
+    
     ORDER BY hit_count DESC
+    
     LIMIT 5
     """
 
@@ -114,8 +112,8 @@ class WAFWeeklyQueries:
     def get_ua_summary_query(
         cls,
         table_name,
-        previous_start,
-        current_end
+        start_ts,
+        end_ts
     ):
     
         return f"""
@@ -139,14 +137,14 @@ class WAFWeeklyQueries:
     
     FROM {table_name}
     
-    WHERE DATE(
-        from_unixtime(timestamp / 1000)
-    )
-    BETWEEN DATE '{previous_start}'
-    AND DATE '{current_end}'
+    WHERE timestamp
+    BETWEEN {start_ts}
+    AND {end_ts}
     
     GROUP BY 1
+    
     ORDER BY request_count DESC
+    
     LIMIT 5
     """
 
