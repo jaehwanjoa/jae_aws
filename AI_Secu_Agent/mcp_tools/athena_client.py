@@ -93,24 +93,60 @@ class AthenaClient:
     
             time.sleep(2)
 
+
     @classmethod
     def get_results(
         cls,
         query_execution_id
     ):
-
+    
         athena = boto3.client(
             "athena"
         )
-
+    
         response = (
             athena.get_query_results(
                 QueryExecutionId=
                 query_execution_id
             )
         )
+    
+        rows = (
+            response
+            ["ResultSet"]
+            ["Rows"]
+        )
+    
+        if len(rows) <= 1:
+            return []
+    
+        headers = [
+            col["VarCharValue"]
+            for col in rows[0]["Data"]
+        ]
+    
+        results = []
+    
+        for row in rows[1:]:
+    
+            item = {}
 
-        return response
+            for idx, header in enumerate(headers):
+            
+                value = None
+            
+                if idx < len(row["Data"]):
+                    value = row["Data"][idx].get(
+                        "VarCharValue"
+                    )
+            
+                item[header] = value
+            
+            results.append(
+                item
+            )
+    
+        return results
 
     @classmethod
     def query(
