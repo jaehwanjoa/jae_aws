@@ -132,8 +132,8 @@ class WAFWeeklyReport:
                     database="jaehwan-aws-waf",
                     query=WAFWeeklyQueries.get_rule_summary_query(
                         table_name,
-                        previous_start,
-                        current_end
+                        start_ts,
+                        end_ts
                     )
                 )
                 
@@ -141,8 +141,8 @@ class WAFWeeklyReport:
                     database="jaehwan-aws-waf",
                     query=WAFWeeklyQueries.get_ip_summary_query(
                         table_name,
-                        previous_start,
-                        current_end
+                        start_ts,
+                        end_ts
                     )
                 )
                 
@@ -150,8 +150,8 @@ class WAFWeeklyReport:
                     database="jaehwan-aws-waf",
                     query=WAFWeeklyQueries.get_domain_summary_query(
                         table_name,
-                        previous_start,
-                        current_end
+                        start_ts,
+                        end_ts
                     )
                 )
                 
@@ -159,8 +159,8 @@ class WAFWeeklyReport:
                     database="jaehwan-aws-waf",
                     query=WAFWeeklyQueries.get_ua_summary_query(
                         table_name,
-                        previous_start,
-                        current_end
+                        start_ts,
+                        end_ts
                     )
                 )
                 
