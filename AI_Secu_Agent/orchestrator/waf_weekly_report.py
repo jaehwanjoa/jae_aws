@@ -1,5 +1,9 @@
 import json
 
+from orchestrator.waf_weekly_analyzer import (
+    WAFWeeklyAnalyzer
+)
+
 from datetime import (
     datetime,
     timedelta
@@ -127,43 +131,21 @@ class WAFWeeklyReport:
         
             try:
                 
-                rule_rows = AthenaClient.query(
+                raw_rows = AthenaClient.query(
                     database="jaehwan-aws-waf",
-                    query=WAFWeeklyQueries.get_rule_summary_query(
+                    query=WAFWeeklyQueries.get_count_detail_query(
                         table_name,
                         start_ts,
                         end_ts
                     )
                 )
                 
-                ip_rows = AthenaClient.query(
-                    database="jaehwan-aws-waf",
-                    query=WAFWeeklyQueries.get_ip_summary_query(
-                        table_name,
-                        start_ts,
-                        end_ts
+                report_data[waf_type] = (
+                    WAFWeeklyAnalyzer.analyze(
+                        raw_rows
                     )
                 )
-                
-                domain_rows = AthenaClient.query(
-                    database="jaehwan-aws-waf",
-                    query=WAFWeeklyQueries.get_domain_summary_query(
-                        table_name,
-                        start_ts,
-                        end_ts
-                    )
-                )
-                
-                report_data[waf_type] = {
-                
-                    "top_rule": rule_rows,
-                
-                    "top_ip": ip_rows,
-                
-                    "top_domain": domain_rows
-                
-                }                               
-            
+                                                      
                 print(
                     f"===== {waf_type} SUMMARY ====="
                 )
