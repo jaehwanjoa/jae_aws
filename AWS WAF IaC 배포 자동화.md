@@ -1010,7 +1010,46 @@ resource "aws_wafv2_web_acl" "WafWebAcl" {
 # ----------------------------------------------------------------------------------------------------------------------
 resource "aws_wafv2_web_acl_logging_configuration" "web_acl_logging" {
   log_destination_configs = [var.waf_s3_arn]
-  resource_arn           = aws_wafv2_web_acl.WafWebAcl.arn
+  resource_arn            = aws_wafv2_web_acl.WafWebAcl.arn
+
+  logging_filter {
+    default_behavior = "DROP"
+
+    filter {
+      behavior    = "KEEP"
+      requirement = "MEETS_ANY"
+
+      condition {
+        action_condition {
+          action = "BLOCK"
+        }
+      }
+
+      condition {
+        action_condition {
+          action = "COUNT"
+        }
+      }
+
+      condition {
+        action_condition {
+          action = "CAPTCHA"
+        }
+      }
+
+      condition {
+        action_condition {
+          action = "CHALLENGE"
+        }
+      }
+
+      condition {
+        action_condition {
+          action = "EXCLUDED_AS_COUNT"
+        }
+      }
+    }
+  }
 
   depends_on = [
     aws_wafv2_web_acl.WafWebAcl
