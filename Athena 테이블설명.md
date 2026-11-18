@@ -8,6 +8,9 @@ https://docs.aws.amazon.com/ko_kr/athena/latest/ug/create-waf-table-partition-pr
 
 ## 1. 단일WebACL 전용 테이블 생성
 
+ㅇㅇㅇ
+  
+```bash
 CREATE EXTERNAL TABLE `waf_logs_partition_projection`(
   `timestamp` bigint, 
   `formatversion` int, 
@@ -50,8 +53,5 @@ TBLPROPERTIES (
   'projection.log_time.range'='2025/01/01/00/00,NOW',
   'projection.log_time.type'='date',
   'storage.location.template'='s3://amzn-s3-demo-bucket/AWSLogs/AWS_ACCOUNT_NUMBER/WAFLogs/cloudfront/testui/${log_time}')
-  
-```bash
-
 
 ```
