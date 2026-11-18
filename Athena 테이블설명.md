@@ -6,129 +6,52 @@ Athena 파티션 프로젝션 기능을 사용하여 쿼리 런타임을 줄이�
 https://docs.aws.amazon.com/ko_kr/athena/latest/ug/create-waf-table-partition-projection.html
 ---
 
-## 1. 테이블 생성
+## 1. 단일WebACL 전용 테이블 생성
 
-CREATE EXTERNAL TABLE `ons_cjl_ue1_new`(
-  `timestamp` bigint,
-  `formatversion` int,
-  `webaclid` string,
-  `terminatingruleid` string,
-  `terminatingruletype` string,
-  `action` string,
-  `terminatingrulematchdetails` array<struct<
-      conditiontype:string,
-      sensitivitylevel:string,
-      location:string,
-      matcheddata:array<string>>>,
-  `httpsourcename` string,
-  `httpsourceid` string,
-  `rulegrouplist` array<struct<
-      rulegroupid:string,
-      terminatingrule:struct<
-          ruleid:string,
-          action:string,
-          rulematchdetails:array<struct<
-              conditiontype:string,
-              sensitivitylevel:string,
-              location:string,
-              matcheddata:array<string>>>>,
-      nonterminatingmatchingrules:array<struct<
-          ruleid:string,
-          action:string,
-          overriddenaction:string,
-          rulematchdetails:array<struct<
-              conditiontype:string,
-              sensitivitylevel:string,
-              location:string,
-              matcheddata:array<string>>>,
-          challengeresponse:struct<
-              responsecode:string,
-              solvetimestamp:string>,
-          captcharesponse:struct<
-              responsecode:string,
-              solvetimestamp:string>>>,
-      excludedrules:string>>,
-  `ratebasedrulelist` array<struct<
-      ratebasedruleid:string,
-      limitkey:string,
-      maxrateallowed:int>>,
-  `nonterminatingmatchingrules` array<struct<
-      ruleid:string,
-      action:string,
-      rulematchdetails:array<struct<
-          conditiontype:string,
-          sensitivitylevel:string,
-          location:string,
-          matcheddata:array<string>>>,
-      challengeresponse:struct<
-          responsecode:string,
-          solvetimestamp:string>,
-      captcharesponse:struct<
-          responsecode:string,
-          solvetimestamp:string>>>,
-  `requestheadersinserted` array<struct<
-      name:string,
-      value:string>>,
-  `responsecodesent` string,
-  `httprequest` struct<
-      clientip:string,
-      country:string,
-      headers:array<struct<
-          name:string,
-          value:string>>,
-      uri:string,
-      args:string,
-      httpversion:string,
-      httpmethod:string,
-      requestid:string,
-      fragment:string,
-      scheme:string,
-      host:string>,
-  `labels` array<struct<name:string>>,
-  `captcharesponse` struct<
-      responsecode:string,
-      solvetimestamp:string,
-      failurereason:string>,
-  `challengeresponse` struct<
-      responsecode:string,
-      solvetimestamp:string,
-      failurereason:string>,
-  `ja3fingerprint` string,
-  `ja4fingerprint` string,
-  `oversizefields` string,
-  `requestbodysize` int,
-  `requestbodysizeinspectedbywaf` int
-)
-PARTITIONED BY (
-  `log_time` string
-)
-ROW FORMAT SERDE
-  'org.openx.data.jsonserde.JsonSerDe'
-STORED AS INPUTFORMAT
-  'org.apache.hadoop.mapred.TextInputFormat'
-OUTPUTFORMAT
+CREATE EXTERNAL TABLE `waf_logs_partition_projection`(
+  `timestamp` bigint, 
+  `formatversion` int, 
+  `webaclid` string, 
+  `terminatingruleid` string, 
+  `terminatingruletype` string, 
+  `action` string, 
+  `terminatingrulematchdetails` array<struct<conditiontype:string,sensitivitylevel:string,location:string,matcheddata:array<string>>>, 
+  `httpsourcename` string, 
+  `httpsourceid` string, 
+  `rulegrouplist` array<struct<rulegroupid:string,terminatingrule:struct<ruleid:string,action:string,rulematchdetails:array<struct<conditiontype:string,sensitivitylevel:string,location:string,matcheddata:array<string>>>>,nonterminatingmatchingrules:array<struct<ruleid:string,action:string,overriddenaction:string,rulematchdetails:array<struct<conditiontype:string,sensitivitylevel:string,location:string,matcheddata:array<string>>>,challengeresponse:struct<responsecode:string,solvetimestamp:string>,captcharesponse:struct<responsecode:string,solvetimestamp:string>>>,excludedrules:string>>, 
+  `ratebasedrulelist` array<struct<ratebasedruleid:string,limitkey:string,maxrateallowed:int>>, 
+  `nonterminatingmatchingrules` array<struct<ruleid:string,action:string,rulematchdetails:array<struct<conditiontype:string,sensitivitylevel:string,location:string,matcheddata:array<string>>>,challengeresponse:struct<responsecode:string,solvetimestamp:string>,captcharesponse:struct<responsecode:string,solvetimestamp:string>>>, 
+  `requestheadersinserted` array<struct<name:string,value:string>>, 
+  `responsecodesent` string, 
+  `httprequest` struct<clientip:string,country:string,headers:array<struct<name:string,value:string>>,uri:string,args:string,httpversion:string,httpmethod:string,requestid:string,fragment:string,scheme:string,host:string>,
+  `labels` array<struct<name:string>>, 
+  `captcharesponse` struct<responsecode:string,solvetimestamp:string,failurereason:string>, 
+  `challengeresponse` struct<responsecode:string,solvetimestamp:string,failurereason:string>, 
+  `ja3fingerprint` string, 
+  `ja4fingerprint` string, 
+  `oversizefields` string, 
+  `requestbodysize` int, 
+  `requestbodysizeinspectedbywaf` int)
+  PARTITIONED BY ( 
+   `log_time` string)
+ROW FORMAT SERDE 
+  'org.openx.data.jsonserde.JsonSerDe' 
+STORED AS INPUTFORMAT 
+  'org.apache.hadoop.mapred.TextInputFormat' 
+OUTPUTFORMAT 
   'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION
-  's3://aws-waf-logs-cjl-ue1/AWSLogs/052955857898/WAFLogs/cloudfront/CJL-CHAT-BOT-WAFACL/'
+  's3://amzn-s3-demo-bucket/AWSLogs/AWS_ACCOUNT_NUMBER/WAFLogs/cloudfront/testui/'
 TBLPROPERTIES (
-  'projection.enabled'='true',
-  'projection.log_time.type'='date',
+ 'projection.enabled'='true',
   'projection.log_time.format'='yyyy/MM/dd/HH/mm',
-  'projection.log_time.interval'='5',
+  'projection.log_time.interval'='1',
   'projection.log_time.interval.unit'='minutes',
-  'projection.log_time.range'='2026/01/01/00/00,NOW',
-  'storage.location.template'='s3://aws-waf-logs-cjl-ue1/AWSLogs/052955857898/WAFLogs/cloudfront/CJL-CHAT-BOT-WAFACL/${log_time}/'
-);
+  'projection.log_time.range'='2025/01/01/00/00,NOW',
+  'projection.log_time.type'='date',
+  'storage.location.template'='s3://amzn-s3-demo-bucket/AWSLogs/AWS_ACCOUNT_NUMBER/WAFLogs/cloudfront/testui/${log_time}')
+  
+```bash
 
-```bash
-AmazonAthenaFullAccess(선택적/보안운영시 필요)
-AWSWAFFullAccess(필요)
-ReadOnlyAccess(필요)
-```
-AWS 액세스 포탈에 접속해서 부여된 자격 증명을 확인합니다.<br>
-AWS 액세스 포탈 > 대상 어카운트 선택 > 부여된 Role 액세스 키 확인
-```bash
-ex)
-SSO 시작 URL: https://<id값>.awsapps.com/start
-SSO 리전: ap-northeast-2
+
 ```
