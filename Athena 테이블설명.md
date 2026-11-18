@@ -8,7 +8,7 @@ https://docs.aws.amazon.com/ko_kr/athena/latest/ug/create-waf-table-partition-pr
 
 ## 1. 단일WebACL 전용 테이블 생성
 
-ㅇㅇㅇ
+projection.day.range에 대해 2021/01/01을 사용하려는 시작 날짜로 바꿉니다. 쿼리가 성공적으로 실행되면 테이블을 쿼리할 수 있습니다. 파티션을 로드하기 위해 ALTER TABLE ADD PARTITION을 실행하지 않아도 됩니다.
   
 ```bash
 CREATE EXTERNAL TABLE `waf_logs_partition_projection`(
@@ -54,4 +54,48 @@ TBLPROPERTIES (
   'projection.log_time.type'='date',
   'storage.location.template'='s3://amzn-s3-demo-bucket/AWSLogs/AWS_ACCOUNT_NUMBER/WAFLogs/cloudfront/testui/${log_time}')
 
+```
+
+## 2. 활용안: 봇 컨트롤 분석
+
+1. waf_data 테이블 생성
+2. 시간 변환(utc -> kst)
+3. 주요 정보 추출 ex)WAF Action, 출발지IP, Country, Uri,  HTTP Method, Detect Rule,  Labels  
+```bash
+WITH waf_data AS (
+    SELECT
+        from_unixtime(waf.timestamp / 1000) + interval '9' hour AS kst_time,
+        waf.terminatingruleid,
+        waf.action,
+        waf.httprequest.clientip AS clientip,
+        waf.httprequest.country AS country,
+        waf.httprequest.uri AS uri,
+        waf.httprequest.httpmethod AS method,
+        rulegroup.terminatingrule.ruleid AS matched_rule,
+        waf.labels AS labels,
+        map_agg(lower(f.name), f.value) AS kv
+    FROM {테이블명} waf,
+         UNNEST(waf.httprequest.headers) AS t(f),
+         UNNEST(waf.rulegrouplist) AS t(rulegroup)
+    WHERE rulegroup.terminatingrule.ruleid IS NOT NULL
+    GROUP BY
+        1,2,3,4,5,6,7,8,9
+)
+
+SELECT
+    kst_time,
+    action,
+    terminatingruleid,
+    matched_rule,
+    uri,
+    method,
+    kv['host'] AS host,
+    kv['user-agent'] AS user_agent,
+    clientip,
+    country,
+    labels
+FROM waf_data
+WHERE terminatingruleid = 'AWS-AWSManagedRulesBotControlRuleSet'
+  AND kst_time >= current_timestamp + interval '9' hour - interval '3' day
+ORDER BY kst_time DESC;
 ```
