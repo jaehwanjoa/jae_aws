@@ -2,6 +2,7 @@
 
 Athena 파티션 프로젝션 기능을 사용하여 쿼리 런타임을 줄이고 파티션 관리를 자동화할 수 있습니다. 새 데이터가 추가되면 파티션 프로젝션은 자동으로 새 파티션을 추가합니다. 
 따라서 ALTER TABLE ADD PARTITION을 사용해 파티션을 수동으로 추가할 필요가 없습니다.
+
 https://docs.aws.amazon.com/ko_kr/athena/latest/ug/create-waf-table-partition-projection.html
 ---
 
